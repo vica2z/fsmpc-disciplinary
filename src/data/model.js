@@ -146,6 +146,56 @@ export const SEED_CASES=[
 /* Per-panel guide — a short "how this panel works" shown on every screen,
    written from the FSMPC disciplinary procedure. */
 export const PANEL_GUIDE = {
+  setup: {
+    title: 'How System Setup works',
+    role: 'ict',
+    points: [
+      'One-time configuration by ICT: the Table of Charges, employees, role permissions, working-day timers and audit logging.',
+      'Once set up, Line Managers can raise cases, HR reviews and decides, Staff respond, and the CEO rules on appeals.',
+      'Every action is written to the Audit Log for governance.',
+    ],
+  },
+  'lm-queue': {
+    title: 'How My Team works',
+    role: 'lm',
+    points: [
+      'Shows the cases you have drafted or submitted. Counsel the employee first — a formal case is a last resort.',
+      'Drafts can be submitted to HR or deleted. Once submitted, the case moves to HR and you can track its status.',
+    ],
+  },
+  'lm-raise': {
+    title: 'How Raise a Case works',
+    role: 'lm',
+    points: [
+      'Pick the employee and offence — the system checks history and shows the 1st/2nd/3rd occurrence and matching penalty range.',
+      'Your recommended action must sit inside that range. Record the statement of facts, then submit to HR (or save as a draft).',
+    ],
+  },
+  'hr-queue': {
+    title: 'How the HR Queue works',
+    role: 'hr',
+    points: [
+      'Cases needing HR action, in order: review & issue the official notice → record the employee response → record the decision.',
+      'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
+    ],
+  },
+  'staff-notices': {
+    title: 'How My Notices works',
+    role: 'staff',
+    points: [
+      'Official notices addressed to employees. Respond within 5 working days, giving your side and any mitigating reasons.',
+      'After the decision you may appeal within 10 working days — the appeal goes to the CEO.',
+    ],
+  },
+  'ceo-appeals': {
+    title: 'How Appeals works',
+    role: 'ceo',
+    points: [
+      'The CEO (or an independent tribunal of peers) is the final arbiter on any appeal — the ruling is final.',
+      'Uphold or overturn the earlier decision; the outcome is recorded and closes the case.',
+    ],
+  },
+
   dash: {
     title: 'How the Dashboard works',
     role: 'ict',
@@ -192,3 +242,14 @@ export const PANEL_GUIDE = {
     ],
   },
 };
+
+/* Role-based navigation: each role sees only its own panels in the loop. */
+export const ROLE_NAV = {
+  ict:   [ {id:'setup',label:'System Setup',icon:'⚙️'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'employees',label:'Employees',icon:'👥'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  ceo:   [ {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+};
+
+export const ROLE_ORDER = ['lm','hr','staff','ceo','ict'];

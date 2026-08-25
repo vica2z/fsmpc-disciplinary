@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OFFENCES, CATS, CAT_ICON, EMP, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE } from './data/model';
+import { OFFENCES, CATS, CAT_ICON, EMP, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
 import {
   offByN, occurrenceFor, occLabel, rangeForOcc,
   penClass, penFull, optionsInRange, rangeChips, empById,
@@ -7,33 +7,26 @@ import {
 } from './lib/logic';
 import { useStore } from './lib/store';
 
-const NAV = [
-  { id: 'dash', label: 'Dashboard', icon: '📊' },
-  { id: 'cases', label: 'Cases', icon: '📁' },
-  { id: 'charges', label: 'Table of Charges', icon: '⚖️' },
-  { id: 'employees', label: 'Employees', icon: '👥' },
-  { id: 'report', label: 'CEO Report', icon: '📋' },
-  { id: 'howto', label: 'How it works', icon: 'ℹ️' },
-];
-
 export default function App() {
-  const [view, setView] = useState('dash');
   const store = useStore();
+  const [role, setRole] = useState('lm');
+  const nav = ROLE_NAV[role];
+  const [view, setView] = useState(nav[0].id);
+
+  function switchRole(r) { setRole(r); setView(ROLE_NAV[r][0].id); }
+
+  const roleInfo = ROLES[role];
 
   return (
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">F</div>
-          <div>
-            <div className="brand-name">FSMPC</div>
-            <div className="brand-sub">Disciplinary Management</div>
-          </div>
+          <div><div className="brand-name">FSMPC</div><div className="brand-sub">Disciplinary Management</div></div>
         </div>
         <nav className="nav">
-          {NAV.map(n => (
-            <button key={n.id} className={'nav-item' + (view === n.id ? ' active' : '')}
-              onClick={() => setView(n.id)}>
+          {nav.map(n => (
+            <button key={n.id} className={'nav-item' + (view === n.id ? ' active' : '')} onClick={() => setView(n.id)}>
               <span className="nav-ico">{n.icon}</span>{n.label}
             </button>
           ))}
@@ -45,10 +38,34 @@ export default function App() {
       </aside>
 
       <main className="main">
-        {view === 'dash' && <Dashboard store={store} setView={setView} />}
-        {view === 'cases' && <Cases store={store} />}
-        {view === 'charges' && <Charges store={store} />}
+        <div className="role-bar">
+          <span className="role-bar-label">Viewing as</span>
+          <div className="role-switch">
+            {ROLE_ORDER.map(r => (
+              <button key={r} className={'role-pill' + (role === r ? ' on' : '')}
+                style={role === r ? { background: ROLES[r].c, color: '#fff' } : {}}
+                onClick={() => switchRole(r)}>{ROLES[r].name}</button>
+            ))}
+          </div>
+          <span className="role-current" style={{ color: roleInfo.c, background: roleInfo.bg }}>{roleInfo.name} view</span>
+        </div>
+
+        {/* ICT */}
+        {view === 'setup' && <Setup store={store} />}
         {view === 'employees' && <Employees store={store} />}
+        {view === 'audit' && <AuditLog store={store} />}
+        {/* Line Manager */}
+        {view === 'lm-queue' && <LMQueue store={store} setView={setView} />}
+        {view === 'lm-raise' && <LMRaise store={store} setView={setView} />}
+        {/* HR */}
+        {view === 'hr-queue' && <HRQueue store={store} />}
+        {view === 'hr-all' && <HRAll store={store} />}
+        {/* Staff */}
+        {view === 'staff-notices' && <StaffNotices store={store} />}
+        {/* CEO */}
+        {view === 'ceo-appeals' && <CEOAppeals store={store} />}
+        {/* shared */}
+        {view === 'charges' && <Charges store={store} role={role} />}
         {view === 'report' && <Report store={store} />}
         {view === 'howto' && <HowItWorks />}
       </main>
@@ -56,167 +73,122 @@ export default function App() {
   );
 }
 
-/* Per-panel guide banner shown at the top of each panel */
+/* Guide banner (per panel) */
 function GuideBanner({ view }) {
   const [open, setOpen] = useState(true);
   const g = PANEL_GUIDE[view];
   if (!g) return null;
   const role = ROLES[g.role] || { name: '', c: '#667085', bg: '#F3F1EC' };
   return (
-    <div className={'guide' + (open ? '' : ' guide-collapsed')}>
+    <div className="guide">
       <div className="guide-head" onClick={() => setOpen(o => !o)}>
-        <span className="guide-ico">ℹ️</span>
-        <b>{g.title}</b>
+        <span className="guide-ico">ℹ️</span><b>{g.title}</b>
         <span className="role-badge" style={{ color: role.c, background: role.bg, marginLeft: 8 }}>{role.name}</span>
         <span className="guide-toggle">{open ? 'Hide' : 'Show'}</span>
       </div>
-      {open && (
-        <ul className="guide-list">
-          {g.points.map((p, i) => <li key={i}>{p}</li>)}
-        </ul>
-      )}
+      {open && <ul className="guide-list">{g.points.map((p, i) => <li key={i}>{p}</li>)}</ul>}
     </div>
   );
 }
 
-/* ── Dashboard ───────────────────────────────────────────── */
-function Dashboard({ store, setView }) {
-  const { cases, emps, offs } = store;
-  const open = cases.filter(c => c.status !== 'Closed' && c.status !== 'Draft').length;
-  const resp = cases.filter(c => c.status === 'Awaiting Response').length;
-  const app = cases.filter(c => c.status === 'Under Appeal').length;
-  const closed = cases.filter(c => c.status === 'Closed').length;
-
-  const byCat = CATS.map(cat => ({
-    cat, n: cases.filter(c => { const o = offByN(c.off, offs); return o && o.cat === cat; }).length,
-  })).filter(x => x.n > 0);
-  const maxCat = Math.max(1, ...byCat.map(x => x.n));
-  const recent = cases.slice(0, 5);
-
+/* ═══════════ ICT ADMIN ═══════════ */
+function Setup({ store }) {
+  const { cases, emps, offs, logs } = store;
+  const rows = [
+    ['Table of Charges', offs.length + ' offences loaded', true],
+    ['Employees on file', emps.length + ' staff records', true],
+    ['Roles & permissions', 'LM raises · HR reviews · CEO approves · Staff responds', true],
+    ['Working-day timers', '5 days to respond · 10 days to appeal', true],
+    ['Audit logging', logs.length + ' actions recorded — ON', true],
+  ];
   return (
     <div className="page">
-      <PageHead title="Disciplinary Dashboard" sub="Live overview of all disciplinary cases across FSMPC" />
-      <GuideBanner view="dash" />
+      <PageHead title="System Setup" sub="One-time configuration of the disciplinary module" />
+      <GuideBanner view="setup" />
       <div className="stat-grid">
-        <Stat n={open} label="Open cases" color="#1E40AF" />
-        <Stat n={resp} label="Awaiting response" color="#B45309" />
-        <Stat n={app} label="Under appeal" color="#6D28D9" />
-        <Stat n={closed} label="Closed" color="#059669" />
+        <Stat n={cases.length} label="Total cases" color="#0891B2" />
+        <Stat n={emps.length} label="Employees" color="#1E40AF" />
+        <Stat n={offs.length} label="Offences" color="#B45309" />
+        <Stat n={logs.length} label="Audit entries" color="#6D28D9" />
       </div>
-      <div className="grid2">
-        <Card title="Cases by category" sub="Where issues are arising">
-          {byCat.length ? byCat.map(x => (
-            <div key={x.cat} className="bar-row">
-              <div className="bar-label"><span dangerouslySetInnerHTML={{ __html: CAT_ICON[x.cat] || '' }} /> {x.cat}</div>
-              <div className="bar-track"><div className="bar-fill" style={{ width: (x.n / maxCat * 100) + '%' }} /></div>
-              <div className="bar-n">{x.n}</div>
-            </div>
-          )) : <Empty>No cases yet.</Empty>}
-        </Card>
-        <Card title="Recent cases" sub="Latest activity">
-          {recent.map(c => {
-            const e = empById(c.empId, emps), o = offByN(c.off, offs);
-            return (
-              <button key={c.id} className="recent-row" onClick={() => setView('cases')}>
-                <div>
-                  <div className="recent-emp">{e ? e.name : 'Unknown'}</div>
-                  <div className="recent-off">{c.id} · {o ? o.name : ''}</div>
-                </div>
-                <span className={'pill ' + statusClass(c.status)}>{c.status}</span>
-              </button>
-            );
-          })}
-        </Card>
-      </div>
+      <Card title="Configuration checklist" sub="Everything the module needs to run">
+        {rows.map(([t, s], i) => (
+          <div key={i} className="setup-row">
+            <span className="setup-check">✓</span>
+            <div><div className="setup-t">{t}</div><div className="sub">{s}</div></div>
+          </div>
+        ))}
+      </Card>
     </div>
   );
 }
 
-/* ── Cases ───────────────────────────────────────────────── */
-const NEXT_ACTION = {
-  Draft: { label: 'Submit to HR', to: 'With HR' },
-  'With HR': { label: 'Issue notice', to: 'Awaiting Response' },
-  'Awaiting Response': { label: 'Record response', to: 'Awaiting Decision' },
-  'Awaiting Decision': { label: 'Record decision', to: 'Closed' },
-  'Under Appeal': { label: 'CEO ruling', to: 'Closed' },
-};
-
-function Cases({ store }) {
-  const { cases, emps, offs } = store;
-  const [q, setQ] = useState('');
-  const [sf, setSf] = useState('');
-  const [cf, setCf] = useState('');
-  const [raising, setRaising] = useState(false);
-  const [editing, setEditing] = useState(null);   // case being edited
-  const [acting, setActing] = useState(null);      // { case, action }
-
-  const rows = cases.filter(c => {
-    const e = empById(c.empId, emps), o = offByN(c.off, offs);
-    if (!e || !o) return false;
-    if (q && (e.name + ' ' + o.name).toLowerCase().indexOf(q.toLowerCase()) < 0) return false;
-    if (sf && c.status !== sf) return false;
-    if (cf && o.cat !== cf) return false;
-    return true;
-  });
-  const statuses = [...new Set(cases.map(c => c.status))];
-
+function AuditLog({ store }) {
+  const { logs } = store;
   return (
     <div className="page">
-      <PageHead title="Cases" sub="All disciplinary cases — raise, progress, edit or delete"
-        right={<button className="btn btn-navy" onClick={() => setRaising(true)}>+ Raise a case</button>} />
-      <GuideBanner view="cases" />
-
-      <div className="filters">
-        <input className="input" placeholder="Search employee or offence…" value={q} onChange={e => setQ(e.target.value)} />
-        <select className="input" value={sf} onChange={e => setSf(e.target.value)}>
-          <option value="">All statuses</option>
-          {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="input" value={cf} onChange={e => setCf(e.target.value)}>
-          <option value="">All categories</option>
-          {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-
+      <PageHead title="Audit Log" sub="Every action taken in the disciplinary system, most recent first" />
       <Card>
-        <table className="table">
-          <thead>
-            <tr><th>Case</th><th>Employee</th><th>Offence</th><th>Occurrence</th>
-              <th>Action</th><th>Status</th><th>Manage</th></tr>
-          </thead>
-          <tbody>
-            {rows.length ? rows.map(c => {
-              const e = empById(c.empId, emps), o = offByN(c.off, offs);
-              const na = NEXT_ACTION[c.status];
-              return (
-                <tr key={c.id}>
-                  <td className="mono">{c.id}</td>
-                  <td><b>{e.name}</b><div className="sub">{e.title}</div></td>
-                  <td>{o.name}<div className="sub">{o.cat}</div></td>
-                  <td>{occLabel(c.occ)}</td>
-                  <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span> {penFull(c.decision || c.rec)}</td>
-                  <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
-                  <td className="row-actions">
-                    {na && <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
-                    {c.status === 'Closed' && !c.appealDate && <button className="btn btn-sm btn-ghost" onClick={() => setActing({ c, action: { label: 'Lodge appeal', to: 'Under Appeal' } })}>Appeal</button>}
-                    <button className="btn btn-sm btn-ghost" onClick={() => setEditing(c)}>Edit</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => { if (confirm(`Delete case ${c.id}? This cannot be undone.`)) store.deleteCase(c.id); }}>Delete</button>
-                  </td>
+        {logs.length ? (
+          <table className="table">
+            <thead><tr><th>When</th><th>Role</th><th>Case</th><th>Action</th></tr></thead>
+            <tbody>
+              {logs.map(l => (
+                <tr key={l.id}>
+                  <td className="sub">{new Date(l.ts).toLocaleString('en-GB')}</td>
+                  <td><span className="role-badge" style={{ color: (ROLES[l.role] || {}).c, background: (ROLES[l.role] || {}).bg }}>{(ROLES[l.role] || {}).name || l.role}</span></td>
+                  <td className="mono">{l.caseId || '—'}</td>
+                  <td>{l.action}</td>
                 </tr>
-              );
-            }) : <tr><td colSpan={7}><Empty>No cases match the filter.</Empty></td></tr>}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : <Empty>No actions recorded yet. Raise or progress a case to see the trail.</Empty>}
       </Card>
-
-      {raising && <RaiseModal store={store} onClose={() => setRaising(false)} />}
-      {editing && <EditCaseModal store={store} c={editing} onClose={() => setEditing(null)} />}
-      {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
     </div>
   );
 }
 
-function RaiseModal({ store, onClose }) {
+/* ═══════════ LINE MANAGER ═══════════ */
+function LMQueue({ store, setView }) {
+  const { cases, emps, offs } = store;
+  const mine = cases.filter(c => c.status === 'Draft' || c.status === 'With HR');
+  return (
+    <div className="page">
+      <PageHead title="My Team — Disciplinary" sub="Cases you have raised or are drafting"
+        right={<button className="btn btn-navy" onClick={() => setView('lm-raise')}>+ Raise a case</button>} />
+      <GuideBanner view="lm-queue" />
+      <Card title="Your cases" sub="Drafts and cases now with HR">
+        {mine.length ? (
+          <table className="table">
+            <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Recommended</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {mine.map(c => {
+                const e = empById(c.empId, emps), o = offByN(c.off, offs);
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+                    <td>{o?.name}</td>
+                    <td><span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</td>
+                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
+                    <td className="row-actions">
+                      {c.status === 'Draft' && <button className="btn btn-sm btn-navy" onClick={() => store.submitToHR(c.id)}>Submit to HR</button>}
+                      {c.status === 'Draft' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete draft ' + c.id + '?')) store.deleteCase(c.id); }}>Delete</button>}
+                      {c.status === 'With HR' && <span className="sub">With HR for review</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <Empty>No active cases. Use “Raise a case” to start one.</Empty>}
+      </Card>
+    </div>
+  );
+}
+
+function LMRaise({ store, setView }) {
   const { cases, emps, offs } = store;
   const [empId, setEmpId] = useState('');
   const [offN, setOffN] = useState('');
@@ -234,139 +206,239 @@ function RaiseModal({ store, onClose }) {
   }, [empId, offN, cases, emps, offs]);
 
   function submit(asDraft) {
-    if (!empId || !offN) { alert('Please select an employee and an offence.'); return; }
-    if (!asDraft && !rec) { alert('Please select a recommended action within the range shown.'); return; }
-    store.submitCase(+empId, +offN, rec || (penalty && penalty.opts[0]), desc, date, asDraft);
-    onClose();
+    if (!empId || !offN) { alert('Select an employee and an offence.'); return; }
+    if (!asDraft && !rec) { alert('Select a recommended action within the range.'); return; }
+    store.submitCase(+empId, +offN, rec || penalty.opts[0], desc, date, asDraft);
+    setEmpId(''); setOffN(''); setRec(''); setDesc('');
+    setView('lm-queue');
   }
 
   return (
-    <Modal title="Raise a disciplinary case" onClose={onClose}
-      foot={<>
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
-        <button className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</button>
-      </>}>
-      <Field label="Employee">
-        <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRec(''); }}>
-          <option value="">— Select employee —</option>
-          {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
-        </select>
-      </Field>
-      <Field label="Offence">
-        <select className="input" value={offN} onChange={e => { setOffN(e.target.value); setRec(''); }}>
-          <option value="">— Select offence —</option>
-          {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
-        </select>
-      </Field>
-      {penalty && (
-        <div className="penalty-box">
-          <div className="sub">System check</div>
-          <div className="penalty-title">
-            This is {penalty.e.name}’s <span className="accent">{occLabel(penalty.occ)} occurrence</span> of this offence
-            {penalty.prior ? ` (${penalty.prior} prior closed case${penalty.prior > 1 ? 's' : ''})` : ''}.
-          </div>
-          <div className="penalty-range">
-            <span className="sub">Applicable penalty range:</span>
-            <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(penalty.pair) }} />
-          </div>
-          {penalty.o.note && <div className="penalty-note">⚠ {penalty.o.note}</div>}
+    <div className="page">
+      <PageHead title="Raise a Disciplinary Case" sub="Counsel first — raise a formal case only if the problem continues" />
+      <GuideBanner view="lm-raise" />
+      <Card>
+        <div className="form-grid">
+          <Field label="Employee">
+            <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRec(''); }}>
+              <option value="">— Select employee —</option>
+              {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
+            </select>
+          </Field>
+          <Field label="Offence">
+            <select className="input" value={offN} onChange={e => { setOffN(e.target.value); setRec(''); }}>
+              <option value="">— Select offence —</option>
+              {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
+            </select>
+          </Field>
         </div>
-      )}
-      <Field label="Recommended action">
-        <select className="input" value={rec} onChange={e => setRec(e.target.value)} disabled={!penalty}>
-          <option value="">— Select recommended action —</option>
-          {penalty && penalty.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
-        </select>
-      </Field>
-      <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
-      <Field label="Description"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What happened…" /></Field>
-    </Modal>
+        {penalty && (
+          <div className="penalty-box">
+            <div className="sub">System check (automatic)</div>
+            <div className="penalty-title">This is {penalty.e.name}’s <span className="accent">{occLabel(penalty.occ)} occurrence</span>{penalty.prior ? ` (${penalty.prior} prior closed)` : ''}.</div>
+            <div className="penalty-range"><span className="sub">Penalty range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(penalty.pair) }} /></div>
+            {penalty.o.note && <div className="penalty-note">⚠ {penalty.o.note}</div>}
+          </div>
+        )}
+        <div className="form-grid">
+          <Field label="Recommended action">
+            <select className="input" value={rec} onChange={e => setRec(e.target.value)} disabled={!penalty}>
+              <option value="">— Select action —</option>
+              {penalty && penalty.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
+            </select>
+          </Field>
+          <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
+        </div>
+        <Field label="Statement of facts"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What happened, investigations, employee response so far…" /></Field>
+        <div className="form-actions">
+          <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
+          <button className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</button>
+        </div>
+      </Card>
+    </div>
   );
 }
 
-function EditCaseModal({ store, c, onClose }) {
-  const { emps, offs, cases } = store;
-  const [rec, setRec] = useState(c.rec);
-  const [desc, setDesc] = useState(c.desc || '');
-  const [date, setDate] = useState(c.raised);
-  const o = offByN(c.off, offs);
-  const pair = o ? rangeForOcc(o, c.occ) : null;
-  const opts = optionsInRange(pair);
-
-  function save() {
-    store.updateCase(c.id, { rec, desc, raised: date });
-    onClose();
-  }
+/* ═══════════ HR MANAGER ═══════════ */
+function HRQueue({ store }) {
+  const { cases, emps, offs } = store;
+  const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision'].includes(c.status));
+  const [acting, setActing] = useState(null);
+  const actionFor = c => c.status === 'With HR' ? { label: 'Issue notice', to: 'Awaiting Response' }
+    : c.status === 'Awaiting Response' ? { label: 'Record response', to: 'Awaiting Decision' }
+    : { label: 'Record decision', to: 'Closed' };
   return (
-    <Modal title={`Edit case ${c.id}`} onClose={onClose}
-      foot={<>
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-navy" onClick={save}>Save changes</button>
-      </>}>
-      <Field label="Employee"><input className="input" value={empById(c.empId, emps)?.name || ''} disabled /></Field>
-      <Field label="Offence"><input className="input" value={o ? `${o.n}. ${o.name}` : ''} disabled /></Field>
-      <div className="penalty-box">
-        <div className="penalty-range">
-          <span className="sub">{occLabel(c.occ)} occurrence — range:</span>
-          <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
-        </div>
+    <div className="page">
+      <PageHead title="HR Queue" sub="Cases awaiting HR action, in workflow order" />
+      <GuideBanner view="hr-queue" />
+      <Card>
+        {queue.length ? (
+          <table className="table">
+            <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Occ.</th><th>Range</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              {queue.map(c => {
+                const e = empById(c.empId, emps), o = offByN(c.off, offs);
+                const pair = o ? rangeForOcc(o, c.occ) : null;
+                const na = actionFor(c);
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+                    <td>{o?.name}</td>
+                    <td>{occLabel(c.occ)}</td>
+                    <td dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
+                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
+                    <td><button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <Empty>HR queue is clear.</Empty>}
+      </Card>
+      {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+    </div>
+  );
+}
+
+function HRAll({ store }) {
+  const { cases, emps, offs } = store;
+  const [q, setQ] = useState(''); const [sf, setSf] = useState('');
+  const rows = cases.filter(c => {
+    const e = empById(c.empId, emps), o = offByN(c.off, offs);
+    if (!e || !o) return false;
+    if (q && (e.name + ' ' + o.name).toLowerCase().indexOf(q.toLowerCase()) < 0) return false;
+    if (sf && c.status !== sf) return false;
+    return true;
+  });
+  const statuses = [...new Set(cases.map(c => c.status))];
+  return (
+    <div className="page">
+      <PageHead title="All Cases" sub="Every disciplinary case across the company" />
+      <div className="filters">
+        <input className="input" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} />
+        <select className="input" value={sf} onChange={e => setSf(e.target.value)}>
+          <option value="">All statuses</option>{statuses.map(s => <option key={s}>{s}</option>)}
+        </select>
       </div>
-      <Field label="Recommended action">
-        <select className="input" value={rec} onChange={e => setRec(e.target.value)}>
-          {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
-        </select>
-      </Field>
-      <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
-      <Field label="Description"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} /></Field>
-    </Modal>
+      <Card>
+        <table className="table">
+          <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Occ.</th><th>Action</th><th>Status</th></tr></thead>
+          <tbody>
+            {rows.map(c => {
+              const e = empById(c.empId, emps), o = offByN(c.off, offs);
+              return (
+                <tr key={c.id}>
+                  <td className="mono">{c.id}</td>
+                  <td><b>{e.name}</b></td>
+                  <td>{o.name}<div className="sub">{o.cat}</div></td>
+                  <td>{occLabel(c.occ)}</td>
+                  <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
+                  <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
   );
 }
 
-/* Handles each lifecycle transition with the right inputs */
+/* ═══════════ STAFF ═══════════ */
+function StaffNotices({ store }) {
+  const { cases, emps, offs } = store;
+  const notices = cases.filter(c => ['Awaiting Response', 'Awaiting Decision', 'Closed', 'Under Appeal'].includes(c.status));
+  const [acting, setActing] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="My Notices" sub="Disciplinary notices addressed to employees — respond or appeal here" />
+      <GuideBanner view="staff-notices" />
+      {notices.length ? notices.map(c => {
+        const e = empById(c.empId, emps), o = offByN(c.off, offs);
+        return (
+          <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
+            <div className="notice-body">
+              <div><span className="sub">Charge:</span> {o?.name} — {occLabel(c.occ)} occurrence</div>
+              <div><span className="sub">Proposed action:</span> <span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</div>
+              {c.response && <div className="notice-quote">Your response: “{c.response}”</div>}
+              {c.status === 'Closed' && <div><span className="sub">Decision:</span> <span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span> — {c.outcome}</div>}
+            </div>
+            <div className="notice-actions">
+              <span className={'pill ' + statusClass(c.status)}>{c.status}</span>
+              {c.status === 'Awaiting Response' && <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'Submit response', to: 'Awaiting Decision' } })}>Respond (5 working days)</button>}
+              {c.status === 'Closed' && !c.appealDate && <button className="btn btn-sm btn-ghost" onClick={() => setActing({ c, action: { label: 'Lodge appeal', to: 'Under Appeal' } })}>Appeal (10 working days)</button>}
+            </div>
+          </Card>
+        );
+      }) : <Empty>No notices at this time.</Empty>}
+      {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+    </div>
+  );
+}
+
+/* ═══════════ CEO ═══════════ */
+function CEOAppeals({ store }) {
+  const { cases, emps, offs } = store;
+  const appeals = cases.filter(c => c.status === 'Under Appeal');
+  const [acting, setActing] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="Appeals — Final Decision" sub="The CEO (or independent tribunal) is the final arbiter" />
+      <GuideBanner view="ceo-appeals" />
+      {appeals.length ? appeals.map(c => {
+        const e = empById(c.empId, emps), o = offByN(c.off, offs);
+        return (
+          <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
+            <div className="notice-body">
+              <div><span className="sub">Decision under appeal:</span> <span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span> {penFull(c.decision || c.rec)}</div>
+              {c.appeal && <div className="notice-quote">Grounds: “{c.appeal}”</div>}
+            </div>
+            <div className="notice-actions">
+              <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'CEO ruling', to: 'Closed' } })}>Rule on appeal</button>
+            </div>
+          </Card>
+        );
+      }) : <Empty>No appeals awaiting a ruling.</Empty>}
+      {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+    </div>
+  );
+}
+
+/* ═══════════ SHARED ACTION MODAL ═══════════ */
 function ActionModal({ store, c, action, onClose }) {
   const { offs } = store;
   const o = offByN(c.off, offs);
   const pair = o ? rangeForOcc(o, c.occ) : null;
   const opts = optionsInRange(pair);
-  const [decision, setDecision] = useState(c.rec);
+  const [decision, setDecision] = useState(c.decision || c.rec);
   const [text, setText] = useState('');
   const [date, setDate] = useState('2026-06-21');
 
   function go() {
     switch (action.to) {
-      case 'With HR': store.updateCase(c.id, { status: 'With HR' }); break;
       case 'Awaiting Response': store.issueNotice(c.id, date); break;
       case 'Awaiting Decision': store.recordResponse(c.id, text); break;
+      case 'Under Appeal': store.lodgeAppeal(c.id, text, date); break;
       case 'Closed':
         if (c.status === 'Under Appeal') store.ceoRuling(c.id, decision, text || 'Upheld by CEO');
         else store.recordDecision(c.id, decision, text || 'Upheld');
         break;
-      case 'Under Appeal': store.lodgeAppeal(c.id, text, date); break;
       default: break;
     }
     onClose();
   }
-
   const needsDecision = action.to === 'Closed';
   const needsText = ['Awaiting Decision', 'Closed', 'Under Appeal'].includes(action.to);
   const needsDate = ['Awaiting Response', 'Under Appeal'].includes(action.to);
-  const textLabel = action.to === 'Awaiting Decision' ? 'Employee’s response'
-    : action.to === 'Under Appeal' ? 'Grounds for appeal'
-    : 'Outcome note (optional)';
-
+  const textLabel = action.to === 'Awaiting Decision' ? 'Your response'
+    : action.to === 'Under Appeal' ? 'Grounds for appeal' : 'Outcome note (optional)';
   return (
     <Modal title={`${action.label} — ${c.id}`} onClose={onClose}
-      foot={<>
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-navy" onClick={go}>{action.label}</button>
-      </>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>{action.label}</button></>}>
       <div className="penalty-box">
-        <div className="penalty-range">
-          <span className="sub">{occLabel(c.occ)} occurrence — range:</span>
-          <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
-        </div>
-        {o && o.note && <div className="penalty-note">⚠ {o.note}</div>}
+        <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+        {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
       </div>
       {needsDecision && (
         <Field label="Final action (within range)">
@@ -377,54 +449,45 @@ function ActionModal({ store, c, action, onClose }) {
       )}
       {needsDate && <Field label={action.to === 'Under Appeal' ? 'Appeal date' : 'Notice date'}><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>}
       {needsText && <Field label={textLabel}><textarea className="input" rows={3} value={text} onChange={e => setText(e.target.value)} /></Field>}
-      {action.to === 'Awaiting Response' && <p className="hint">Issuing the notice starts the employee’s 5 working-day response window.</p>}
+      {action.to === 'Awaiting Response' && <p className="hint">Issuing the notice starts the 5 working-day response window.</p>}
     </Modal>
   );
 }
 
-/* ── Table of Charges (editable) ─────────────────────────── */
-function Charges({ store }) {
+/* ═══════════ TABLE OF CHARGES (editable for ICT/HR) ═══════════ */
+function Charges({ store, role }) {
   const { offs } = store;
-  const [q, setQ] = useState('');
-  const [cf, setCf] = useState('');
-  const [editing, setEditing] = useState(null);
-  const [adding, setAdding] = useState(false);
-
+  const editable = role === 'ict' || role === 'hr';
+  const [q, setQ] = useState(''); const [cf, setCf] = useState('');
+  const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false);
   const rows = offs.filter(o => {
     if (q && o.name.toLowerCase().indexOf(q.toLowerCase()) < 0 && ('' + o.n) !== q) return false;
     if (cf && o.cat !== cf) return false;
     return true;
   });
-
   return (
     <div className="page">
-      <PageHead title="Table of Charges" sub="The recognised offences and their penalty ranges by occurrence"
-        right={<button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add offence</button>} />
+      <PageHead title="Table of Charges" sub="Recognised offences and penalty ranges by occurrence"
+        right={editable && <button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add offence</button>} />
       <GuideBanner view="charges" />
       <div className="filters">
         <input className="input" placeholder="Search offence or number…" value={q} onChange={e => setQ(e.target.value)} />
-        <select className="input" value={cf} onChange={e => setCf(e.target.value)}>
-          <option value="">All categories</option>
-          {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <select className="input" value={cf} onChange={e => setCf(e.target.value)}><option value="">All categories</option>{CATS.map(c => <option key={c}>{c}</option>)}</select>
       </div>
       <Card>
         <table className="table">
-          <thead><tr><th>#</th><th>Category</th><th>Offence</th><th>1st</th><th>2nd</th><th>3rd+</th><th>Manage</th></tr></thead>
+          <thead><tr><th>#</th><th>Category</th><th>Offence</th><th>1st</th><th>2nd</th><th>3rd+</th>{editable && <th>Manage</th>}</tr></thead>
           <tbody>
             {rows.map(o => (
               <tr key={o.n}>
                 <td className="mono">{o.n}</td>
                 <td><span dangerouslySetInnerHTML={{ __html: CAT_ICON[o.cat] || '' }} /> {o.cat}</td>
                 <td>{o.name}{o.note && <div className="penalty-note">⚠ {o.note}</div>}</td>
-                {[0, 1, 2].map(i => {
-                  const pair = o.p[i] || o.p[o.p.length - 1];
-                  return <td key={i} dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />;
-                })}
-                <td className="row-actions">
+                {[0, 1, 2].map(i => { const pair = o.p[i] || o.p[o.p.length - 1]; return <td key={i} dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />; })}
+                {editable && <td className="row-actions">
                   <button className="btn btn-sm btn-ghost" onClick={() => setEditing(o)}>Edit</button>
                   <button className="btn btn-sm btn-danger" onClick={() => { if (confirm(`Delete offence #${o.n}?`)) store.deleteOff(o.n); }}>Delete</button>
-                </td>
+                </td>}
               </tr>
             ))}
           </tbody>
@@ -434,7 +497,6 @@ function Charges({ store }) {
     </div>
   );
 }
-
 function OffenceModal({ store, off, onClose }) {
   const isNew = !off;
   const [name, setName] = useState(off?.name || '');
@@ -442,79 +504,50 @@ function OffenceModal({ store, off, onClose }) {
   const [note, setNote] = useState(off?.note || '');
   const toStr = p => (p || []).map(pr => pr[0] === pr[1] ? pr[0] : `${pr[0]}-${pr[1]}`).join(', ');
   const [pText, setPText] = useState(off ? toStr(off.p) : 'A-R, R-S3, S10-D');
-
-  function parseP(s) {
-    return s.split(',').map(t => t.trim()).filter(Boolean).map(t => {
-      const parts = t.split('-').map(x => x.trim());
-      return parts.length === 1 ? [parts[0], parts[0]] : [parts[0], parts[1]];
-    });
-  }
+  function parseP(s) { return s.split(',').map(t => t.trim()).filter(Boolean).map(t => { const x = t.split('-').map(y => y.trim()); return x.length === 1 ? [x[0], x[0]] : [x[0], x[1]]; }); }
   function save() {
-    if (!name.trim()) { alert('Please enter the offence description.'); return; }
-    const p = parseP(pText);
-    const bad = p.flat().find(code => !PEN_ORDER.includes(code));
-    if (bad) { alert(`“${bad}” is not a valid penalty code. Use: ${PEN_ORDER.join(', ')}.`); return; }
+    if (!name.trim()) { alert('Enter the offence description.'); return; }
+    const p = parseP(pText); const bad = p.flat().find(code => !PEN_ORDER.includes(code));
+    if (bad) { alert(`“${bad}” is not a valid code. Use: ${PEN_ORDER.join(', ')}.`); return; }
     const patch = { name: name.trim(), cat, p, note: note.trim() || undefined };
     if (isNew) store.addOff(patch); else store.updateOff(off.n, patch);
     onClose();
   }
   return (
     <Modal title={isNew ? 'Add offence' : `Edit offence #${off.n}`} onClose={onClose}
-      foot={<>
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-navy" onClick={save}>{isNew ? 'Add offence' : 'Save changes'}</button>
-      </>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>{isNew ? 'Add' : 'Save'}</button></>}>
       <Field label="Offence description"><textarea className="input" rows={2} value={name} onChange={e => setName(e.target.value)} /></Field>
-      <Field label="Category">
-        <select className="input" value={cat} onChange={e => setCat(e.target.value)}>
-          {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </Field>
-      <Field label="Penalty ranges — 1st, 2nd, 3rd (comma separated)">
-        <input className="input" value={pText} onChange={e => setPText(e.target.value)} placeholder="e.g. A-R, R-S3, S10-D" />
-      </Field>
-      <p className="hint">Codes: A, R, S3/S10/S20 (suspension days), D. Use a single code (e.g. “D”) or a range (e.g. “R-S3”). One entry per occurrence.</p>
-      <Field label="Special note (optional)"><input className="input" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. If public safety IS endangered, penalty is Dismissal on first offence." /></Field>
+      <Field label="Category"><select className="input" value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select></Field>
+      <Field label="Penalty ranges — 1st, 2nd, 3rd"><input className="input" value={pText} onChange={e => setPText(e.target.value)} placeholder="e.g. A-R, R-S3, S10-D" /></Field>
+      <p className="hint">Codes: A, R, S3/S10/S20, D. Single code (D) or range (R-S3). One per occurrence.</p>
+      <Field label="Special note (optional)"><input className="input" value={note} onChange={e => setNote(e.target.value)} /></Field>
     </Modal>
   );
 }
 
-/* ── Employees (editable) ────────────────────────────────── */
+/* ═══════════ EMPLOYEES (ICT) ═══════════ */
 function Employees({ store }) {
   const { emps, cases } = store;
-  const [q, setQ] = useState('');
-  const [editing, setEditing] = useState(null);
-  const [adding, setAdding] = useState(false);
+  const [q, setQ] = useState(''); const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false);
   const rows = emps.filter(e => !q || (e.name + ' ' + e.title + ' ' + e.dept).toLowerCase().includes(q.toLowerCase()));
-
   return (
     <div className="page">
       <PageHead title="Employees" sub="Staff directory used by the disciplinary system"
         right={<button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add employee</button>} />
       <GuideBanner view="employees" />
-      <div className="filters">
-        <input className="input" placeholder="Search name, title or department…" value={q} onChange={e => setQ(e.target.value)} />
-      </div>
+      <div className="filters"><input className="input" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} /></div>
       <Card>
         <table className="table">
-          <thead><tr><th>ID</th><th>Name</th><th>Title</th><th>Department</th><th>Supervisor</th><th>Cases</th><th>Manage</th></tr></thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Title</th><th>Dept</th><th>Supervisor</th><th>Cases</th><th>Manage</th></tr></thead>
           <tbody>
             {rows.map(e => {
               const n = cases.filter(c => c.empId === e.id).length;
               return (
                 <tr key={e.id}>
-                  <td className="mono">{e.id}</td>
-                  <td><b>{e.name}</b></td>
-                  <td>{e.title}</td>
-                  <td>{e.dept}</td>
-                  <td>{e.sup}</td>
-                  <td>{n}</td>
+                  <td className="mono">{e.id}</td><td><b>{e.name}</b></td><td>{e.title}</td><td>{e.dept}</td><td>{e.sup}</td><td>{n}</td>
                   <td className="row-actions">
                     <button className="btn btn-sm btn-ghost" onClick={() => setEditing(e)}>Edit</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => {
-                      if (n > 0) { alert(`${e.name} has ${n} case(s) and cannot be deleted.`); return; }
-                      if (confirm(`Delete ${e.name}?`)) store.deleteEmp(e.id);
-                    }}>Delete</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => { if (n > 0) { alert(`${e.name} has ${n} case(s) and cannot be deleted.`); return; } if (confirm(`Delete ${e.name}?`)) store.deleteEmp(e.id); }}>Delete</button>
                   </td>
                 </tr>
               );
@@ -526,22 +559,14 @@ function Employees({ store }) {
     </div>
   );
 }
-
 function EmployeeModal({ store, emp, onClose }) {
   const isNew = !emp;
   const [f, setF] = useState({ name: emp?.name || '', title: emp?.title || '', dept: emp?.dept || '', sup: emp?.sup || '' });
   const set = k => e => setF(s => ({ ...s, [k]: e.target.value }));
-  function save() {
-    if (!f.name.trim()) { alert('Please enter a name.'); return; }
-    if (isNew) store.addEmp(f); else store.updateEmp(emp.id, f);
-    onClose();
-  }
+  function save() { if (!f.name.trim()) { alert('Enter a name.'); return; } if (isNew) store.addEmp(f); else store.updateEmp(emp.id, f); onClose(); }
   return (
     <Modal title={isNew ? 'Add employee' : `Edit ${emp.name}`} onClose={onClose}
-      foot={<>
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-navy" onClick={save}>{isNew ? 'Add' : 'Save changes'}</button>
-      </>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>{isNew ? 'Add' : 'Save'}</button></>}>
       <Field label="Full name"><input className="input" value={f.name} onChange={set('name')} /></Field>
       <Field label="Job title"><input className="input" value={f.title} onChange={set('title')} /></Field>
       <Field label="Department"><input className="input" value={f.dept} onChange={set('dept')} /></Field>
@@ -550,7 +575,7 @@ function EmployeeModal({ store, emp, onClose }) {
   );
 }
 
-/* ── CEO Report ──────────────────────────────────────────── */
+/* ═══════════ CEO REPORT (HR + CEO) ═══════════ */
 function Report({ store }) {
   const { cases, emps, offs } = store;
   const open = cases.filter(c => c.status !== 'Closed');
@@ -558,26 +583,16 @@ function Report({ store }) {
   const tbl = (list, empty) => list.length ? (
     <table className="table">
       <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Action</th><th>Status</th></tr></thead>
-      <tbody>
-        {list.map(c => {
-          const e = empById(c.empId, emps), o = offByN(c.off, offs);
-          return (
-            <tr key={c.id}>
-              <td className="mono">{c.id}</td>
-              <td>{e ? e.name : ''}</td>
-              <td>{o ? o.name : ''}</td>
-              <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
-              <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
-            </tr>
-          );
-        })}
-      </tbody>
+      <tbody>{list.map(c => { const e = empById(c.empId, emps), o = offByN(c.off, offs); return (
+        <tr key={c.id}><td className="mono">{c.id}</td><td>{e?.name}</td><td>{o?.name}</td>
+          <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
+          <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td></tr>
+      ); })}</tbody>
     </table>
   ) : <Empty>{empty}</Empty>;
-
   return (
     <div className="page">
-      <PageHead title="CEO Weekly Report" sub="Summary of disciplinary activity for executive review" />
+      <PageHead title="Weekly CEO Report" sub="Summary of disciplinary activity for executive review" />
       <GuideBanner view="report" />
       <div className="stat-grid">
         <Stat n={open.length} label="Open" color="#1E40AF" />
@@ -585,14 +600,14 @@ function Report({ store }) {
         <Stat n={cases.filter(c => c.status === 'Under Appeal').length} label="Under appeal" color="#6D28D9" />
         <Stat n={cases.filter(c => (c.decision || c.rec) === 'D').length} label="Dismissals" color="#B42318" />
       </div>
-      <Card title="Open cases" sub="Requiring attention or in progress">{tbl(open, 'No open cases.')}</Card>
+      <Card title="Open cases" sub="In progress">{tbl(open, 'No open cases.')}</Card>
       <div style={{ height: 16 }} />
-      <Card title="Recently closed" sub="Concluded cases">{tbl(closed, 'No closed cases.')}</Card>
+      <Card title="Recently closed" sub="Concluded">{tbl(closed, 'No closed cases.')}</Card>
     </div>
   );
 }
 
-/* ── How it works (full walkthrough) ─────────────────────── */
+/* ═══════════ HOW IT WORKS ═══════════ */
 function HowItWorks() {
   const [step, setStep] = useState(0);
   const s = STEPS[step];
@@ -608,10 +623,7 @@ function HowItWorks() {
         ))}
       </div>
       <Card>
-        <div className="step-head">
-          <span className="role-badge" style={{ color: role.c, background: role.bg }}>{role.name}</span>
-          <h3 dangerouslySetInnerHTML={{ __html: s.title }} />
-        </div>
+        <div className="step-head"><span className="role-badge" style={{ color: role.c, background: role.bg }}>{role.name}</span><h3 dangerouslySetInnerHTML={{ __html: s.title }} /></div>
         <p className="step-desc" dangerouslySetInnerHTML={{ __html: s.desc }} />
         {s.mock && <div className="step-mock" dangerouslySetInnerHTML={{ __html: s.mock }} />}
         <div className="step-controls">
@@ -624,36 +636,18 @@ function HowItWorks() {
   );
 }
 
-/* ── shared bits ─────────────────────────────────────────── */
+/* ═══════════ shared bits ═══════════ */
 function PageHead({ title, sub, right }) {
-  return (
-    <div className="page-head">
-      <div><h1>{title}</h1>{sub && <p className="page-sub">{sub}</p>}</div>
-      {right && <div className="page-head-r">{right}</div>}
-    </div>
-  );
+  return <div className="page-head"><div><h1>{title}</h1>{sub && <p className="page-sub">{sub}</p>}</div>{right && <div className="page-head-r">{right}</div>}</div>;
 }
-function Stat({ n, label, color }) {
-  return <div className="stat"><div className="stat-n" style={{ color }}>{n}</div><div className="stat-l">{label}</div></div>;
-}
+function Stat({ n, label, color }) { return <div className="stat"><div className="stat-n" style={{ color }}>{n}</div><div className="stat-l">{label}</div></div>; }
 function Card({ title, sub, children }) {
-  return (
-    <div className="card">
-      {(title || sub) && <div className="card-head">{title && <div className="card-title">{title}</div>}{sub && <div className="card-sub">{sub}</div>}</div>}
-      <div className="card-body">{children}</div>
-    </div>
-  );
+  return <div className="card">{(title || sub) && <div className="card-head">{title && <div className="card-title">{title}</div>}{sub && <div className="card-sub">{sub}</div>}</div>}<div className="card-body">{children}</div></div>;
 }
 function Empty({ children }) { return <div className="empty">{children}</div>; }
 function Field({ label, children }) { return <label className="field"><span>{label}</span>{children}</label>; }
 function Modal({ title, onClose, foot, children }) {
-  return (
-    <div className="modal-bg" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-head"><h3>{title}</h3><button className="modal-x" onClick={onClose}>×</button></div>
-        <div className="modal-body">{children}</div>
-        <div className="modal-foot">{foot}</div>
-      </div>
-    </div>
-  );
+  return <div className="modal-bg" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-head"><h3>{title}</h3><button className="modal-x" onClick={onClose}>×</button></div>
+    <div className="modal-body">{children}</div><div className="modal-foot">{foot}</div></div></div>;
 }

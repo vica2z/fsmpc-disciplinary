@@ -22,10 +22,18 @@ export function useStore() {
   const [cases, setCases] = useState(() => initial?.cases ?? SEED_CASES.map(c => ({ ...c })));
   const [emps,  setEmps]  = useState(() => initial?.emps  ?? SEED_EMP.map(e => ({ ...e })));
   const [offs,  setOffs]  = useState(() => initial?.offs  ?? SEED_OFF.map(o => ({ ...o })));
+  const [logs,  setLogs]  = useState(() => initial?.logs  ?? []);
+
+  const log = useCallback((role, caseId, action) => {
+    setLogs(prev => [{
+      id: 'LOG-' + (prev.length + 1),
+      ts: new Date().toISOString(), role, caseId, action,
+    }, ...prev]);
+  }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(LS, JSON.stringify({ cases, emps, offs })); } catch (e) { /* ignore */ }
-  }, [cases, emps, offs]);
+    try { localStorage.setItem(LS, JSON.stringify({ cases, emps, offs, logs })); } catch (e) { /* ignore */ }
+  }, [cases, emps, offs, logs]);
 
   /* ---- CASES ---- */
   const nextCaseId = useCallback((list) => {
@@ -35,14 +43,17 @@ export function useStore() {
   }, []);
 
   const submitCase = useCallback((empId, offN, rec, desc, date, asDraft) => {
+    let newId;
     setCases(prev => {
       const occ = occurrenceFor(+empId, +offN, prev);
+      newId = nextCaseId(prev);
       return [{
-        id: nextCaseId(prev), empId: +empId, off: +offN, occ, rec,
+        id: newId, empId: +empId, off: +offN, occ, rec,
         status: asDraft ? 'Draft' : 'With HR', raised: date || '2026-06-21', desc: desc || '',
       }, ...prev];
     });
-  }, [nextCaseId]);
+    log('lm', newId, asDraft ? 'Saved case as draft' : 'Raised case and submitted to HR');
+  }, [nextCaseId, log]);
 
   const updateCase = useCallback((id, patch) =>
     setCases(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c)), []);
@@ -51,16 +62,11 @@ export function useStore() {
     setCases(prev => prev.filter(c => c.id !== id)), []);
 
   /* lifecycle transitions (per the PDF process) */
-  const issueNotice = useCallback((id, date) =>
-    updateCase(id, { status: 'Awaiting Response', noticeDate: date || '2026-06-21' }), [updateCase]);
-  const recordResponse = useCallback((id, response) =>
-    updateCase(id, { status: 'Awaiting Decision', response }), [updateCase]);
-  const recordDecision = useCallback((id, decision, outcome) =>
-    updateCase(id, { status: 'Closed', decision, outcome: outcome || 'Upheld' }), [updateCase]);
-  const lodgeAppeal = useCallback((id, appeal, date) =>
-    updateCase(id, { status: 'Under Appeal', appeal, appealDate: date || '2026-06-21' }), [updateCase]);
-  const ceoRuling = useCallback((id, decision, outcome) =>
-    updateCase(id, { status: 'Closed', decision, outcome: outcome || 'Upheld by CEO' }), [updateCase]);
+  const issueNotice = useCallback((id, date) => { updateCase(id, { status: 'Awaiting Response', noticeDate: date || '2026-06-21' }); log('hr', id, 'Issued official notice — 5 working-day response window started'); }, [updateCase, log]);
+  const recordResponse = useCallback((id, response) => { updateCase(id, { status: 'Awaiting Decision', response }); log('staff', id, 'Employee submitted response'); }, [updateCase, log]);
+  const recordDecision = useCallback((id, decision, outcome) => { updateCase(id, { status: 'Closed', decision, outcome: outcome || 'Upheld' }); log('hr', id, 'Recorded decision: ' + decision); }, [updateCase, log]);
+  const lodgeAppeal = useCallback((id, appeal, date) => { updateCase(id, { status: 'Under Appeal', appeal, appealDate: date || '2026-06-21' }); log('staff', id, 'Employee lodged an appeal'); }, [updateCase, log]);
+  const ceoRuling = useCallback((id, decision, outcome) => { updateCase(id, { status: 'Closed', decision, outcome: outcome || 'Upheld by CEO' }); log('ceo', id, 'CEO final ruling: ' + decision + ' (' + (outcome || 'Upheld by CEO') + ')'); }, [updateCase, log]);
 
   /* ---- EMPLOYEES ---- */
   const addEmp = useCallback((e) => setEmps(prev => {
@@ -82,18 +88,21 @@ export function useStore() {
   const deleteOff = useCallback((n) =>
     setOffs(prev => prev.filter(o => o.n !== n)), []);
 
+  const submitToHR = useCallback((id) => { updateCase(id, { status: 'With HR' }); log('lm', id, 'Submitted draft case to HR'); }, [updateCase, log]);
+
   const resetAll = useCallback(() => {
     if (confirm('Reset all cases, employees and charges back to the sample data?')) {
       setCases(SEED_CASES.map(c => ({ ...c })));
       setEmps(SEED_EMP.map(e => ({ ...e })));
       setOffs(SEED_OFF.map(o => ({ ...o })));
+      setLogs([]);
     }
   }, []);
 
   return {
-    cases, emps, offs,
+    cases, emps, offs, logs,
     submitCase, updateCase, deleteCase,
-    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling,
+    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR,
     addEmp, updateEmp, deleteEmp,
     addOff, updateOff, deleteOff,
     resetAll,

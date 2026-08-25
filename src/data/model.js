@@ -62,6 +62,37 @@ export const EMP=[
  {id:450,name:'Prylain Manuel',title:'Receptionist',dept:'Admin',sup:'Joseph Saimon'},
 ];
 
+
+/* Executive Members — each holds a portfolio of departments and can see
+   the disciplinary standing of every employee under that portfolio. */
+
+/* Appraisal status is owned by the STIP system, not the disciplinary module.
+   For this prototype we derive a stable sample status per employee so the
+   Executive can see appraisal standing alongside discipline. In production this
+   comes from the STIP API. */
+export const APPRAISAL_STATUSES = ['CEO Approved','With HR','Submitted to CEO','Pending'];
+export function appraisalStatus(empId, quarter) {
+  // deterministic pseudo-status from id+quarter so it stays stable across renders
+  const q = quarter === 'Q1' ? 7 : 13;
+  const idx = (empId * 3 + q) % 10;
+  if (idx < 4) return 'CEO Approved';
+  if (idx < 6) return 'With HR';
+  if (idx < 8) return 'Submitted to CEO';
+  return 'Pending';
+}
+export function apprStatusClass(s) {
+  return s === 'CEO Approved' ? 'st-closed'
+    : s === 'With HR' ? 'st-hr'
+    : s === 'Submitted to CEO' ? 'st-appeal'
+    : 'st-draft';
+}
+
+export const EXECUTIVES = [
+  { id: 'exec-ops', name: 'Savenaca Tamani', title: 'Executive — Operations Group', depts: ['Operations','Terminals','Safety'] },
+  { id: 'exec-corp', name: 'Johnny Adolph', title: 'Executive — Corporate Services', depts: ['Finance','Supply Chain','Admin'] },
+  { id: 'exec-tech', name: 'Neil Halstead', title: 'Executive — Technology & Projects', depts: ['ICT','Projects'] },
+];
+
 export const PEN_ORDER=['A','R','S3','S10','S20','D'];
 
 export const ROLES={
@@ -70,6 +101,7 @@ export const ROLES={
   hr:{name:'HR Manager',c:'#B45309',bg:'#FEF3C7',init:'HR'},
   staff:{name:'Staff',c:'#059669',bg:'#D1FAE5',init:'ST'},
   ceo:{name:'CEO',c:'#6D28D9',bg:'#EDE9FE',init:'CE'},
+  exec:{name:'Executive Member',c:'#134E4A',bg:'#CCFBF1',init:'EX'},
 };
 
 export const STEPS = [
@@ -146,6 +178,33 @@ export const SEED_CASES=[
 /* Per-panel guide — a short "how this panel works" shown on every screen,
    written from the FSMPC disciplinary procedure. */
 export const PANEL_GUIDE = {
+  'exec-portfolio': {
+    title: 'How My Portfolio works',
+    role: 'exec',
+    points: [
+      'Your portfolio is the set of departments under you. It lists the line managers and staff you oversee, from the HR structure.',
+      'Structure: Staff → Line Manager → Executive Member (you). You see the disciplinary standing of everyone in your portfolio.',
+      'This is a read-only oversight view — you monitor, HR and the CEO act.',
+    ],
+  },
+  'exec-appraisals': {
+    title: 'How Portfolio Appraisals works',
+    role: 'exec',
+    points: [
+      'The appraisal status of every employee in your portfolio, by quarter — Pending, Submitted to CEO, With HR, or CEO Approved.',
+      'Lets you see at a glance who still needs a completed appraisal this quarter.',
+      'Appraisal data comes from the STIP system; this is a read-only oversight view.',
+    ],
+  },
+  'exec-discipline': {
+    title: 'How Portfolio Discipline works',
+    role: 'exec',
+    points: [
+      'Every disciplinary case for employees in your portfolio departments — live from the shared case data.',
+      'Filter by status to see open, awaiting-response, under-appeal or closed cases across your teams.',
+      'You cannot edit cases here; this view is for oversight and reporting up the chain.',
+    ],
+  },
   setup: {
     title: 'How System Setup works',
     role: 'ict',
@@ -250,6 +309,7 @@ export const ROLE_NAV = {
   hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   ceo:   [ {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
 };
 
-export const ROLE_ORDER = ['lm','hr','staff','ceo','ict'];
+export const ROLE_ORDER = ['lm','hr','staff','exec','ceo','ict'];

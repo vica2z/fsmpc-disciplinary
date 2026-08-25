@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OFFENCES, CATS, CAT_ICON, EMP, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
+import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
 import {
   offByN, occurrenceFor, occLabel, rangeForOcc,
   penClass, penFull, optionsInRange, rangeChips, empById,
@@ -10,6 +10,7 @@ import { useStore } from './lib/store';
 export default function App() {
   const store = useStore();
   const [role, setRole] = useState('lm');
+  const [execId, setExecId] = useState(EXECUTIVES[0].id);
   const nav = ROLE_NAV[role];
   const [view, setView] = useState(nav[0].id);
 
@@ -49,6 +50,14 @@ export default function App() {
           </div>
           <span className="role-current" style={{ color: roleInfo.c, background: roleInfo.bg }}>{roleInfo.name} view</span>
         </div>
+        {role === 'exec' && (
+          <div className="exec-bar">
+            <span className="role-bar-label">Executive</span>
+            <select className="input exec-select" value={execId} onChange={e => setExecId(e.target.value)}>
+              {EXECUTIVES.map(x => <option key={x.id} value={x.id}>{x.name} — {x.title}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* ICT */}
         {view === 'setup' && <Setup store={store} />}
@@ -64,6 +73,10 @@ export default function App() {
         {view === 'staff-notices' && <StaffNotices store={store} />}
         {/* CEO */}
         {view === 'ceo-appeals' && <CEOAppeals store={store} />}
+        {/* Executive */}
+        {view === 'exec-portfolio' && <ExecPortfolio store={store} execId={execId} />}
+        {view === 'exec-appraisals' && <ExecAppraisals store={store} execId={execId} />}
+        {view === 'exec-discipline' && <ExecDiscipline store={store} execId={execId} />}
         {/* shared */}
         {view === 'charges' && <Charges store={store} role={role} />}
         {view === 'report' && <Report store={store} />}
@@ -401,6 +414,157 @@ function CEOAppeals({ store }) {
         );
       }) : <Empty>No appeals awaiting a ruling.</Empty>}
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+    </div>
+  );
+}
+
+
+/* ═══════════ EXECUTIVE MEMBER ═══════════ */
+function useExec(execId, emps) {
+  const exec = EXECUTIVES.find(x => x.id === execId) || EXECUTIVES[0];
+  const inPortfolio = emps.filter(e => exec.depts.includes(e.dept));
+  return { exec, inPortfolio };
+}
+
+function ExecPortfolio({ store, execId }) {
+  const { emps, cases } = store;
+  const { exec, inPortfolio } = useExec(execId, emps);
+  // group by department
+  const byDept = exec.depts.map(d => ({
+    dept: d,
+    staff: inPortfolio.filter(e => e.dept === d),
+  })).filter(g => g.staff.length);
+  const openFor = id => cases.filter(c => c.empId === id && c.status !== 'Closed').length;
+
+  return (
+    <div className="page">
+      <PageHead title="My Portfolio" sub={`${exec.name} · ${exec.title}`} />
+      <GuideBanner view="exec-portfolio" />
+      <div className="stat-grid">
+        <Stat n={inPortfolio.length} label="Staff in portfolio" color="#134E4A" />
+        <Stat n={exec.depts.length} label="Departments" color="#1E40AF" />
+        <Stat n={cases.filter(c => inPortfolio.some(e => e.id === c.empId)).length} label="Total cases" color="#B45309" />
+        <Stat n={cases.filter(c => inPortfolio.some(e => e.id === c.empId) && c.status !== 'Closed').length} label="Open cases" color="#991B1B" />
+      </div>
+      <div className="portfolio-note">Structure: Staff → Line Manager → Executive Member (you). You see the disciplinary standing of everyone below.</div>
+      {byDept.map(g => (
+        <Card key={g.dept} title={g.dept} sub={`${g.staff.length} staff`}>
+          <table className="table">
+            <thead><tr><th>Name</th><th>Title</th><th>Supervisor</th><th>Open cases</th></tr></thead>
+            <tbody>
+              {g.staff.map(e => {
+                const n = openFor(e.id);
+                return (
+                  <tr key={e.id}>
+                    <td><b>{e.name}</b></td>
+                    <td>{e.title}</td>
+                    <td>{e.sup}</td>
+                    <td>{n > 0 ? <span className="pill st-hr">{n} open</span> : <span className="sub">Clear</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+
+function ExecAppraisals({ store, execId }) {
+  const { emps } = store;
+  const { exec, inPortfolio } = useExec(execId, emps);
+  const [quarter, setQuarter] = useState('Q2');
+  const rows = inPortfolio.map(e => ({ e, status: appraisalStatus(e.id, quarter) }));
+  const count = s => rows.filter(r => r.status === s).length;
+  const done = count('CEO Approved');
+  const pending = rows.length - done;
+
+  return (
+    <div className="page">
+      <PageHead title="Portfolio Appraisals" sub={`${quarter} 2026 · appraisal status across ${exec.title}`}
+        right={
+          <select className="input" style={{ maxWidth: 140 }} value={quarter} onChange={e => setQuarter(e.target.value)}>
+            <option value="Q1">Q1 2026</option><option value="Q2">Q2 2026</option>
+          </select>
+        } />
+      <GuideBanner view="exec-appraisals" />
+      <div className="stat-grid">
+        <Stat n={rows.length} label="Staff in portfolio" color="#134E4A" />
+        <Stat n={done} label="CEO Approved" color="#059669" />
+        <Stat n={count('With HR') + count('Submitted to CEO')} label="In progress" color="#B45309" />
+        <Stat n={count('Pending')} label="Pending" color="#991B1B" />
+      </div>
+      <Card title={`Appraisal status — ${quarter} 2026`} sub="Every employee in your portfolio">
+        <table className="table">
+          <thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Supervisor</th><th>Appraisal status</th></tr></thead>
+          <tbody>
+            {rows.map(({ e, status }) => (
+              <tr key={e.id}>
+                <td><b>{e.name}</b></td>
+                <td>{e.title}</td>
+                <td>{e.dept}</td>
+                <td>{e.sup}</td>
+                <td><span className={'pill ' + apprStatusClass(status)}>{status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      {pending > 0 && <div className="portfolio-note" style={{ background: '#FEF3C7', borderColor: '#FCD34D', color: '#92400E' }}>
+        {pending} staff member{pending > 1 ? 's' : ''} in your portfolio {pending > 1 ? 'do not' : 'does not'} yet have a CEO-approved appraisal for {quarter} 2026.
+      </div>}
+    </div>
+  );
+}
+
+function ExecDiscipline({ store, execId }) {
+  const { emps, cases, offs } = store;
+  const { exec, inPortfolio } = useExec(execId, emps);
+  const ids = new Set(inPortfolio.map(e => e.id));
+  const [sf, setSf] = useState('');
+  const mine = cases.filter(c => ids.has(c.empId) && (!sf || c.status === sf));
+  const statuses = [...new Set(cases.filter(c => ids.has(c.empId)).map(c => c.status))];
+
+  return (
+    <div className="page">
+      <PageHead title="Portfolio Discipline" sub={`Disciplinary standing across ${exec.title} — oversight only`} />
+      <GuideBanner view="exec-discipline" />
+      <div className="stat-grid">
+        <Stat n={mine.filter(c => c.status !== 'Closed').length} label="Open" color="#1E40AF" />
+        <Stat n={mine.filter(c => c.status === 'Under Appeal').length} label="Under appeal" color="#6D28D9" />
+        <Stat n={mine.filter(c => c.status === 'Closed').length} label="Closed" color="#059669" />
+        <Stat n={mine.filter(c => (c.decision || c.rec) === 'D').length} label="Dismissals" color="#991B1B" />
+      </div>
+      <div className="filters">
+        <select className="input" value={sf} onChange={e => setSf(e.target.value)}>
+          <option value="">All statuses</option>{statuses.map(x => <option key={x}>{x}</option>)}
+        </select>
+      </div>
+      <Card>
+        {mine.length ? (
+          <table className="table">
+            <thead><tr><th>Case</th><th>Employee</th><th>Dept</th><th>Offence</th><th>Occ.</th><th>Action</th><th>Status</th></tr></thead>
+            <tbody>
+              {mine.map(c => {
+                const e = empById(c.empId, emps), o = offByN(c.off, offs);
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+                    <td>{e?.dept}</td>
+                    <td>{o?.name}</td>
+                    <td>{occLabel(c.occ)}</td>
+                    <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
+                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <Empty>No disciplinary cases in your portfolio.</Empty>}
+      </Card>
     </div>
   );
 }

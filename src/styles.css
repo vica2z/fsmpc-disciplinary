@@ -213,3 +213,9 @@ button{font-family:var(--font)}
 .inv-recap{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:9px;padding:10px 13px;margin-bottom:12px}
 .inv-recap .inv-title{color:#1E3A5F;margin-bottom:5px}
 @media(max-width:600px){.wit-add{grid-template-columns:1fr}}
+
+/* SMT / CEO referral statuses */
+.st-smt{background:#FFEDD5;color:#7C2D12}
+.st-ceo{background:#EDE9FE;color:#5B21B6}
+.smt-rec{background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px;padding:10px 13px;margin-bottom:12px}
+.smt-rec .inv-title{color:#7C2D12}

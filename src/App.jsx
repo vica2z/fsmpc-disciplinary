@@ -75,7 +75,10 @@ export default function App() {
         {/* Staff */}
         {view === 'staff-notices' && <StaffNotices store={store} />}
         {/* CEO */}
+        {view === 'ceo-referrals' && <CEOReferrals store={store} />}
         {view === 'ceo-appeals' && <CEOAppeals store={store} />}
+        {view === 'smt-queue' && <SMTQueue store={store} />}
+        {view === 'smt-decided' && <SMTDecided store={store} />}
         {/* Executive */}
         {view === 'exec-portfolio' && <ExecPortfolio store={store} execId={execId} />}
         {view === 'exec-appraisals' && <ExecAppraisals store={store} execId={execId} />}
@@ -483,6 +486,7 @@ function HRQueue({ store }) {
   const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision'].includes(c.status));
   const [acting, setActing] = useState(null);
   const [investigating, setInvestigating] = useState(null);
+  const [forwarding, setForwarding] = useState(null); // {c, to:'CEO'|'SMT'}
   const actionFor = c => c.status === 'With HR'
       ? (c.investigation ? { label: 'Issue notice', to: 'Awaiting Response' } : { label: 'Investigate', to: 'investigate' })
     : c.status === 'Awaiting Response' ? { label: 'Record response', to: 'Awaiting Decision' }
@@ -509,8 +513,12 @@ function HRQueue({ store }) {
                     <td dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
                     <td className="row-actions">
-                      {c.status === 'With HR' && c.investigation && <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>View / edit investigation</button>}
+                      {c.status === 'With HR' && c.investigation && <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</button>}
                       <button className="btn btn-sm btn-navy" onClick={() => na.to === 'investigate' ? setInvestigating(c) : setActing({ c, action: na })}>{na.label}</button>
+                      {c.status === 'With HR' && c.investigation && <>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
+                      </>}
                     </td>
                   </tr>
                 );
@@ -521,7 +529,31 @@ function HRQueue({ store }) {
       </Card>
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
       {investigating && <InvestigationModal store={store} c={investigating} onClose={() => setInvestigating(null)} />}
+      {forwarding && <ForwardModal store={store} c={forwarding.c} to={forwarding.to} onClose={() => setForwarding(null)} />}
     </div>
+  );
+}
+
+function ForwardModal({ store, c, to, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const [note, setNote] = useState('');
+  function go() {
+    if (to === 'SMT') store.forwardToSMT(c.id, note);
+    else store.forwardToCEO(c.id, note);
+    onClose();
+  }
+  return (
+    <Modal title={`Forward ${c.id} to ${to === 'SMT' ? 'the SMT' : 'the CEO'}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Forward to {to}</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {o?.name}</div>
+        <div className="sub">{to === 'SMT'
+          ? 'The Senior Management Team will review this case and recommend an action to the CEO. It then goes to the CEO with their recommendation.'
+          : 'This case goes directly to the CEO for a final decision, skipping the notice/response stage.'}</div>
+      </div>
+      <Field label={`Note for the ${to === 'SMT' ? 'SMT' : 'CEO'} (optional)`}><textarea className="input" rows={3} value={note} onChange={ev => setNote(ev.target.value)} placeholder="Why this is being escalated…" /></Field>
+    </Modal>
   );
 }
 
@@ -700,6 +732,75 @@ function StaffNotices({ store }) {
 }
 
 /* ═══════════ CEO ═══════════ */
+
+function CEOReferrals({ store }) {
+  const { cases, emps, offs } = store;
+  const refs = cases.filter(c => c.status === 'With CEO');
+  const [deciding, setDeciding] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="Referrals — CEO Decision" sub="Cases forwarded by HR, or recommended by the SMT" />
+      <GuideBanner view="ceo-referrals" />
+      {refs.length ? refs.map(c => {
+        const e = empById(c.empId, emps), o = offByN(c.off, offs);
+        const pair = o ? rangeForOcc(o, c.occ) : null;
+        return (
+          <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
+            <div className="notice-body">
+              <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+              <div><span className="sub">Route:</span> {c.smtRec ? 'HR → SMT → CEO' : 'HR → CEO (direct)'}</div>
+              {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
+              {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
+            </div>
+            {c.smtRec && (
+              <div className="smt-rec">
+                <div className="inv-title">SMT recommendation</div>
+                <div><span className={'chip ' + penClass(c.smtRec)}>{c.smtRec}</span> {penFull(c.smtRec)}</div>
+                {c.smtRationale && <div className="sub" style={{ marginTop: 4 }}>{c.smtRationale}</div>}
+              </div>
+            )}
+            <div className="notice-actions">
+              <span className="pill st-ceo">With CEO</span>
+              <button className="btn btn-sm btn-navy" onClick={() => setDeciding(c)}>Make final decision</button>
+            </div>
+          </Card>
+        );
+      }) : <Empty>No cases awaiting a CEO decision.</Empty>}
+      {deciding && <CEODecisionModal store={store} c={deciding} onClose={() => setDeciding(null)} />}
+    </div>
+  );
+}
+
+function CEODecisionModal({ store, c, onClose }) {
+  const { offs, emps } = store;
+  const o = offByN(c.off, offs), e = empById(c.empId, emps);
+  const pair = o ? rangeForOcc(o, c.occ) : null;
+  const opts = optionsInRange(pair);
+  const [decision, setDecision] = useState(c.smtRec || opts[0] || '');
+  const [note, setNote] = useState('');
+  function go() {
+    if (!decision) { alert('Select the final action.'); return; }
+    store.ceoDecideReferral(c.id, decision, note || (c.smtRec === decision ? 'Followed SMT recommendation' : 'Decided by CEO'));
+    onClose();
+  }
+  return (
+    <Modal title={`CEO decision — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Record final decision</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {o?.name}</div>
+        <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+      </div>
+      {c.smtRec && <div className="smt-rec"><div className="inv-title">SMT recommended</div><div><span className={'chip ' + penClass(c.smtRec)}>{c.smtRec}</span> {penFull(c.smtRec)}</div>{c.smtRationale && <div className="sub" style={{marginTop:4}}>{c.smtRationale}</div>}</div>}
+      <Field label="Final action (within range)">
+        <select className="input" value={decision} onChange={ev => setDecision(ev.target.value)}>
+          {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
+        </select>
+      </Field>
+      <Field label="Note (optional)"><textarea className="input" rows={2} value={note} onChange={ev => setNote(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
+
 function CEOAppeals({ store }) {
   const { cases, emps, offs } = store;
   const appeals = cases.filter(c => c.status === 'Under Appeal');
@@ -873,6 +974,104 @@ function ExecDiscipline({ store, execId }) {
             </tbody>
           </table>
         ) : <Empty>No disciplinary cases in your portfolio.</Empty>}
+      </Card>
+    </div>
+  );
+}
+
+
+/* ═══════════ SENIOR MANAGEMENT TEAM (SMT) ═══════════ */
+function SMTQueue({ store }) {
+  const { cases, emps, offs } = store;
+  const queue = cases.filter(c => c.status === 'With SMT');
+  const [reccing, setReccing] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="SMT Referrals" sub="Cases forwarded by HR for a recommendation to the CEO" />
+      <GuideBanner view="smt-queue" />
+      {queue.length ? queue.map(c => {
+        const e = empById(c.empId, emps), o = offByN(c.off, offs);
+        const pair = o ? rangeForOcc(o, c.occ) : null;
+        return (
+          <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
+            <div className="notice-body">
+              <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+              {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
+              {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
+              {c.investigation?.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w => w.name).join(', ')}</div>}
+              {c.investigation?.files?.length > 0 && <div className="sub">{c.investigation.files.length} evidence file(s)</div>}
+            </div>
+            <div className="notice-actions">
+              <span className="pill st-smt">With SMT</span>
+              <button className="btn btn-sm btn-navy" onClick={() => setReccing(c)}>Recommend to CEO</button>
+            </div>
+          </Card>
+        );
+      }) : <Empty>No cases referred to the SMT.</Empty>}
+      {reccing && <SMTRecommendModal store={store} c={reccing} onClose={() => setReccing(null)} />}
+    </div>
+  );
+}
+
+function SMTRecommendModal({ store, c, onClose }) {
+  const { offs, emps } = store;
+  const o = offByN(c.off, offs), e = empById(c.empId, emps);
+  const pair = o ? rangeForOcc(o, c.occ) : null;
+  const opts = optionsInRange(pair);
+  const [action, setAction] = useState(opts[0] || '');
+  const [rationale, setRationale] = useState('');
+  function go() {
+    if (!action) { alert('Select a recommended action.'); return; }
+    store.smtRecommend(c.id, action, rationale);
+    onClose();
+  }
+  return (
+    <Modal title={`SMT recommendation — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Send recommendation to CEO</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {o?.name}</div>
+        <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+        {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
+      </div>
+      <Field label="Recommended action to the CEO">
+        <select className="input" value={action} onChange={ev => setAction(ev.target.value)}>
+          {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
+        </select>
+      </Field>
+      <Field label="Rationale"><textarea className="input" rows={3} value={rationale} onChange={ev => setRationale(ev.target.value)} placeholder="Why the SMT recommends this action…" /></Field>
+      <p className="hint">This is a recommendation only — the CEO makes the final decision.</p>
+    </Modal>
+  );
+}
+
+function SMTDecided({ store }) {
+  const { cases, emps, offs } = store;
+  const rows = cases.filter(c => c.smtRec);
+  return (
+    <div className="page">
+      <PageHead title="Recommended" sub="Cases the SMT has recommended on and sent to the CEO" />
+      <GuideBanner view="smt-decided" />
+      <Card>
+        {rows.length ? (
+          <table className="table">
+            <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>SMT recommended</th><th>CEO decision</th><th>Status</th></tr></thead>
+            <tbody>
+              {rows.map(c => {
+                const e = empById(c.empId, emps), o = offByN(c.off, offs);
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b></td>
+                    <td>{o?.name}</td>
+                    <td><span className={'chip ' + penClass(c.smtRec)}>{c.smtRec}</span> {penFull(c.smtRec)}</td>
+                    <td>{c.status === 'Closed' ? <><span className={'chip ' + penClass(c.decision)}>{c.decision}</span> {c.outcome}</> : <span className="sub">Awaiting CEO</span>}</td>
+                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <Empty>No SMT recommendations yet.</Empty>}
       </Card>
     </div>
   );

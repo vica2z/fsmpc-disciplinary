@@ -46,5 +46,5 @@ export function stageState(c,key){
     return'idle';
   }
 
-export function statusClass(s){ return s==='Draft'?'st-draft':s==='With HR'?'st-hr':s==='Awaiting Response'?'st-resp':s==='Under Appeal'?'st-appeal':'st-closed'; }
+export function statusClass(s){ return s==='Draft'?'st-draft':s==='With HR'?'st-hr':s==='Awaiting Response'?'st-resp':s==='Under Appeal'?'st-appeal':s==='With SMT'?'st-smt':s==='With CEO'?'st-ceo':'st-closed'; }
 

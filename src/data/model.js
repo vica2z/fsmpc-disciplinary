@@ -104,6 +104,7 @@ export const ROLES={
   staff:{name:'Staff',c:'#059669',bg:'#D1FAE5',init:'ST'},
   ceo:{name:'CEO',c:'#6D28D9',bg:'#EDE9FE',init:'CE'},
   exec:{name:'Executive Member',c:'#134E4A',bg:'#CCFBF1',init:'EX'},
+  smt:{name:'SMT',c:'#7C2D12',bg:'#FFEDD5',init:'SM'},
 };
 
 export const STEPS = [
@@ -150,6 +151,13 @@ export const STEPS = [
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">Staff · Response box</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">\"I was late on those days due to a family medical emergency. I have since arranged earlier transport and it will not happen again. Supporting note from the clinic is attached.\"</div><div style=\"display:flex;align-items:center;gap:8px;margin-top:10px\"><span class=\"st st-resp\">Response submitted</span><span class=\"timer\">3 working days left</span></div>"
  },
  {
+  "role": "smt",
+  "title": "HR may forward to the CEO or SMT",
+  "short": "Forward",
+  "desc": "For serious cases, HR can forward directly to the CEO, or to the Senior Management Team (SMT). The SMT reviews the case and evidence and recommends an action to the CEO — within the offence range — with their rationale. The case then goes to the CEO with that recommendation attached. This branch is an alternative to HR issuing the notice itself.",
+  "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR &rarr; SMT &rarr; CEO</div><div style=\"background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:13px 15px;margin-bottom:10px\"><div style=\"font-size:11px;color:#7C2D12;font-weight:800;text-transform:uppercase;margin-bottom:5px\">SMT recommendation</div><div style=\"font-size:13px;font-weight:700;color:var(--navy)\"><span class=\"pen pen-S\">S10</span> 10-day suspension</div><div style=\"font-size:12px;color:var(--muted);margin-top:3px\">Given the severity, the SMT recommends this action to the CEO.</div></div><div style=\"display:flex;align-items:center;gap:8px\"><span class=\"st st-ceo\">With CEO</span><span style=\"font-size:11px;color:var(--muted)\">CEO makes the final decision</span></div>"
+ },
+ {
   "role": "hr",
   "title": "HR records the decision",
   "short": "Decision",
@@ -187,6 +195,32 @@ export const SEED_CASES=[
 /* Per-panel guide — a short "how this panel works" shown on every screen,
    written from the FSMPC disciplinary procedure. */
 export const PANEL_GUIDE = {
+  'ceo-referrals': {
+    title: 'How Referrals works',
+    role: 'ceo',
+    points: [
+      'Cases HR forwarded directly to you, or that came up through the SMT with a recommendation.',
+      'Where the SMT has recommended an action, it is shown here — you may follow it or decide differently, within the offence range.',
+      'Your decision is final and closes the case.',
+    ],
+  },
+  'smt-queue': {
+    title: 'How SMT Referrals works',
+    role: 'smt',
+    points: [
+      'Cases HR has forwarded to the Senior Management Team for a recommendation before the CEO decides.',
+      'Review the case, the investigation and any evidence, then recommend an action to the CEO — within the offence\u2019s penalty range — with your rationale.',
+      'Once recommended, the case moves to the CEO with your recommendation attached. The CEO makes the final decision.',
+    ],
+  },
+  'smt-decided': {
+    title: 'How Recommended works',
+    role: 'smt',
+    points: [
+      'Cases the SMT has already recommended on and sent to the CEO.',
+      'Shows your recommended action and rationale, and the CEO\u2019s final decision once made.',
+    ],
+  },
   'lm-counsel': {
     title: 'How Counselling works',
     role: 'lm',
@@ -344,8 +378,9 @@ export const ROLE_NAV = {
   lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-counsel',label:'Counselling',icon:'💬'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  ceo:   [ {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  ceo:   [ {id:'ceo-referrals',label:'Referrals',icon:'📨'}, {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  smt:   [ {id:'smt-queue',label:'SMT Referrals',icon:'🏛️'}, {id:'smt-decided',label:'Recommended',icon:'✅'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-counsel',label:'Portfolio Counselling',icon:'💬'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
 };
 
-export const ROLE_ORDER = ['lm','hr','staff','exec','ceo','ict'];
+export const ROLE_ORDER = ['lm','hr','staff','exec','smt','ceo','ict'];

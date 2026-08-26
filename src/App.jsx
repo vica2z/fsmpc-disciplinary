@@ -482,7 +482,9 @@ function HRQueue({ store }) {
   const { cases, emps, offs } = store;
   const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision'].includes(c.status));
   const [acting, setActing] = useState(null);
-  const actionFor = c => c.status === 'With HR' ? { label: 'Issue notice', to: 'Awaiting Response' }
+  const [investigating, setInvestigating] = useState(null);
+  const actionFor = c => c.status === 'With HR'
+      ? (c.investigation ? { label: 'Issue notice', to: 'Awaiting Response' } : { label: 'Investigate', to: 'investigate' })
     : c.status === 'Awaiting Response' ? { label: 'Record response', to: 'Awaiting Decision' }
     : { label: 'Record decision', to: 'Closed' };
   return (
@@ -506,7 +508,10 @@ function HRQueue({ store }) {
                     <td>{occLabel(c.occ)}</td>
                     <td dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
-                    <td><button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button></td>
+                    <td className="row-actions">
+                      {c.status === 'With HR' && c.investigation && <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>View / edit investigation</button>}
+                      <button className="btn btn-sm btn-navy" onClick={() => na.to === 'investigate' ? setInvestigating(c) : setActing({ c, action: na })}>{na.label}</button>
+                    </td>
                   </tr>
                 );
               })}
@@ -515,7 +520,102 @@ function HRQueue({ store }) {
         ) : <Empty>HR queue is clear.</Empty>}
       </Card>
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+      {investigating && <InvestigationModal store={store} c={investigating} onClose={() => setInvestigating(null)} />}
     </div>
+  );
+}
+
+/* HR Investigation — before the notice is issued */
+function InvestigationModal({ store, c, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const inv0 = c.investigation || {};
+  const [findings, setFindings] = useState(inv0.findings || '');
+  const [lmDiscuss, setLmDiscuss] = useState(inv0.lmDiscuss || '');
+  const [staffDiscuss, setStaffDiscuss] = useState(inv0.staffDiscuss || '');
+  const [witnesses, setWitnesses] = useState(inv0.witnesses || []);
+  const [wName, setWName] = useState('');
+  const [wNote, setWNote] = useState('');
+  const [files, setFiles] = useState(inv0.files || []);
+
+  function addWitness() {
+    if (!wName.trim()) return;
+    setWitnesses(w => [...w, { name: wName.trim(), note: wNote.trim() }]);
+    setWName(''); setWNote('');
+  }
+  function removeWitness(i) { setWitnesses(w => w.filter((_, idx) => idx !== i)); }
+
+  function onFiles(ev) {
+    const list = Array.from(ev.target.files || []);
+    list.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = () => setFiles(prev => [...prev, { name: f.name, type: f.type, size: f.size, data: reader.result }]);
+      reader.readAsDataURL(f);
+    });
+    ev.target.value = '';
+  }
+  function removeFile(i) { setFiles(f => f.filter((_, idx) => idx !== i)); }
+
+  function save(thenIssue) {
+    store.saveInvestigation(c.id, { findings, lmDiscuss, staffDiscuss, witnesses, files, savedAt: '2026-06-21' });
+    onClose();
+  }
+
+  const isImg = t => t && t.startsWith('image/');
+  return (
+    <Modal title={`Investigation — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={() => save(false)}>Save investigation</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {o?.name}</div>
+        <div className="sub">Investigate before issuing the notice: establish the facts, discuss with the line manager and the employee, and record any witnesses and evidence.</div>
+      </div>
+      <Field label="Investigation findings"><textarea className="input" rows={3} value={findings} onChange={ev => setFindings(ev.target.value)} placeholder="What the investigation established about the incident…" /></Field>
+      <div className="form-grid">
+        <Field label="Discussion with line manager"><textarea className="input" rows={2} value={lmDiscuss} onChange={ev => setLmDiscuss(ev.target.value)} /></Field>
+        <Field label="Discussion with employee"><textarea className="input" rows={2} value={staffDiscuss} onChange={ev => setStaffDiscuss(ev.target.value)} /></Field>
+      </div>
+
+      <div className="inv-section">
+        <div className="inv-title">Witnesses <span className="sub">(staff on site during the incident)</span></div>
+        {witnesses.length > 0 && (
+          <div className="wit-list">
+            {witnesses.map((w, i) => (
+              <div key={i} className="wit-row">
+                <div><b>{w.name}</b>{w.note && <div className="sub">{w.note}</div>}</div>
+                <button className="btn btn-sm btn-danger" onClick={() => removeWitness(i)}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="wit-add">
+          <input className="input" placeholder="Witness name" value={wName} onChange={ev => setWName(ev.target.value)} />
+          <input className="input" placeholder="What they said (optional)" value={wNote} onChange={ev => setWNote(ev.target.value)} />
+          <button className="btn btn-ghost" onClick={addWitness}>+ Add</button>
+        </div>
+      </div>
+
+      <div className="inv-section">
+        <div className="inv-title">Evidence — documents & images</div>
+        {files.length > 0 && (
+          <div className="file-list">
+            {files.map((f, i) => (
+              <div key={i} className="file-chip">
+                {isImg(f.type)
+                  ? <img src={f.data} alt={f.name} className="file-thumb" />
+                  : <span className="file-ico">📄</span>}
+                <div className="file-meta"><a href={f.data} download={f.name} className="file-name">{f.name}</a><div className="sub">{(f.size/1024).toFixed(0)} KB</div></div>
+                <button className="btn btn-sm btn-danger" onClick={() => removeFile(i)}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label className="file-drop">
+          <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={onFiles} hidden />
+          <span>📎 Click to upload documents or images</span>
+        </label>
+      </div>
+      <p className="hint">Once the investigation is saved, the case shows an “Issue notice” action. All notes, witnesses and evidence stay attached to the case.</p>
+    </Modal>
   );
 }
 
@@ -809,6 +909,14 @@ function ActionModal({ store, c, action, onClose }) {
         <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
         {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
       </div>
+      {c.investigation && (
+        <div className="inv-recap">
+          <div className="inv-title">Investigation on file</div>
+          {c.investigation.findings && <div className="sub" style={{marginBottom:4}}>{c.investigation.findings}</div>}
+          {c.investigation.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w=>w.name).join(', ')}</div>}
+          {c.investigation.files?.length > 0 && <div className="sub">{c.investigation.files.length} evidence file(s) attached</div>}
+        </div>
+      )}
       {needsDecision && (
         <Field label="Final action (within range)">
           <select className="input" value={decision} onChange={e => setDecision(e.target.value)}>

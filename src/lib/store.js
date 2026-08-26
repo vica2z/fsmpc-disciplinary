@@ -66,6 +66,11 @@ export function useStore() {
     setCases(prev => prev.filter(c => c.id !== id)), []);
 
   /* lifecycle transitions (per the PDF process) */
+  const saveInvestigation = useCallback((id, inv) => {
+    updateCase(id, { investigation: inv });
+    log('hr', id, 'Recorded investigation notes' + (inv.witnesses && inv.witnesses.length ? ' (' + inv.witnesses.length + ' witness' + (inv.witnesses.length>1?'es':'') + ')' : '') + (inv.files && inv.files.length ? ' + ' + inv.files.length + ' file(s)' : ''));
+  }, [updateCase, log]);
+
   const issueNotice = useCallback((id, date) => { updateCase(id, { status: 'Awaiting Response', noticeDate: date || '2026-06-21' }); log('hr', id, 'Issued official notice — 5 working-day response window started'); }, [updateCase, log]);
   const recordResponse = useCallback((id, response) => { updateCase(id, { status: 'Awaiting Decision', response }); log('staff', id, 'Employee submitted response'); }, [updateCase, log]);
   const recordDecision = useCallback((id, decision, outcome) => { updateCase(id, { status: 'Closed', decision, outcome: outcome || 'Upheld' }); log('hr', id, 'Recorded decision: ' + decision); }, [updateCase, log]);
@@ -143,7 +148,7 @@ export function useStore() {
   return {
     cases, emps, offs, logs, couns,
     submitCase, updateCase, deleteCase,
-    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR,
+    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation,
     addCounselling, updateCounselling, deleteCounselling, escalateCounselling,
     addEmp, updateEmp, deleteEmp,
     addOff, updateOff, deleteOff,

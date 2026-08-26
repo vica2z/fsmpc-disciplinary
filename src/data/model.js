@@ -130,14 +130,21 @@ export const STEPS = [
  },
  {
   "role": "hr",
+  "title": "HR investigates the case",
+  "short": "Investigate",
+  "desc": "Before issuing any notice, HR investigates. HR establishes the facts of the incident, discusses it with the line manager and the employee, and may question other staff who were on site as witnesses. Witness names and statements are recorded, and any supporting documents or images (reports, photos, CCTV stills) are uploaded as evidence. Only once the investigation is saved can HR issue the official notice.",
+  "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR Manager · Investigation</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">Findings: CCTV confirms the bay was left unattended at 14:05. Discussed with the line manager and the employee.</div><div style=\"font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin:12px 0 6px\">Witnesses</div><div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"st st-hr\">Sireli Sovau</span><span class=\"st st-hr\">Wayne Narruhn</span></div><div style=\"font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin:12px 0 6px\">Evidence</div><div style=\"display:flex;align-items:center;gap:8px\"><span>&#128196;</span><span style=\"font-size:12px;color:var(--navy);font-weight:600\">incident_report.pdf</span><span>&#128247;</span><span style=\"font-size:12px;color:var(--navy);font-weight:600\">cctv_still.png</span></div>"
+ },
+ {
+  "role": "hr",
   "title": "HR reviews and issues official notice",
   "short": "HR review",
-  "desc": "HR receives the case, reviews the facts, and interviews the employee. If satisfied, HR issues an official notice of the charge and the proposed action, in line with the Table of Charges. This starts the employee&rsquo;s 5-working-day response window.",
+  "desc": "With the investigation complete, HR issues the official notice of the charge and the proposed action, in line with the Table of Charges. The notice goes to both the employee and the line manager, and starts the employee&rsquo;s 5-working-day response window.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR Manager · Official notice</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">Official Notice of Charge issued to the employee. Charge: Offence #1 (unexcused tardiness), 2nd occurrence. Proposed action: Written warning (R).</div><div style=\"display:flex;align-items:center;gap:8px;margin-top:10px\"><span class=\"st st-resp\">Awaiting employee response</span><span class=\"timer\">5 working days to respond</span></div>"
  },
  {
   "role": "staff",
-  "title": "Employee responds (5 working days)",
+  "title": "Employee responds — HR records it (5 working days)",
   "short": "Respond",
   "desc": "The employee receives the notice and has 5 working days to give their side of the story. They submit a written response in the system. If they have a genuine reason they cannot respond in time, a reasonable extension can be granted.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">Staff · Response box</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">\"I was late on those days due to a family medical emergency. I have since arranged earlier transport and it will not happen again. Supporting note from the clinic is attached.\"</div><div style=\"display:flex;align-items:center;gap:8px;margin-top:10px\"><span class=\"st st-resp\">Response submitted</span><span class=\"timer\">3 working days left</span></div>"

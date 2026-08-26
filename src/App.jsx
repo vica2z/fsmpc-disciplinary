@@ -582,15 +582,19 @@ function InvestigationModal({ store, c, onClose }) {
             {witnesses.map((w, i) => (
               <div key={i} className="wit-row">
                 <div><b>{w.name}</b>{w.note && <div className="sub">{w.note}</div>}</div>
-                <button className="btn btn-sm btn-danger" onClick={() => removeWitness(i)}>Remove</button>
+                <button type="button" className="btn btn-sm btn-danger" onClick={() => removeWitness(i)}>Remove</button>
               </div>
             ))}
           </div>
         )}
         <div className="wit-add">
-          <input className="input" placeholder="Witness name" value={wName} onChange={ev => setWName(ev.target.value)} />
-          <input className="input" placeholder="What they said (optional)" value={wNote} onChange={ev => setWNote(ev.target.value)} />
-          <button className="btn btn-ghost" onClick={addWitness}>+ Add</button>
+          <input className="input" placeholder="Witness name" value={wName}
+            onChange={ev => setWName(ev.target.value)}
+            onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); addWitness(); } }} />
+          <input className="input" placeholder="What they said (optional)" value={wNote}
+            onChange={ev => setWNote(ev.target.value)}
+            onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); addWitness(); } }} />
+          <button type="button" className="btn btn-navy" onClick={addWitness} disabled={!wName.trim()}>+ Add witness</button>
         </div>
       </div>
 
@@ -604,7 +608,7 @@ function InvestigationModal({ store, c, onClose }) {
                   ? <img src={f.data} alt={f.name} className="file-thumb" />
                   : <span className="file-ico">📄</span>}
                 <div className="file-meta"><a href={f.data} download={f.name} className="file-name">{f.name}</a><div className="sub">{(f.size/1024).toFixed(0)} KB</div></div>
-                <button className="btn btn-sm btn-danger" onClick={() => removeFile(i)}>×</button>
+                <button type="button" className="btn btn-sm btn-danger" onClick={() => removeFile(i)}>×</button>
               </div>
             ))}
           </div>

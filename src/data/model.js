@@ -154,7 +154,7 @@ export const STEPS = [
   "role": "smt",
   "title": "HR may forward to the CEO or SMT",
   "short": "Forward",
-  "desc": "For serious cases, HR can forward directly to the CEO, or to the Senior Management Team (SMT). The SMT reviews the case and evidence and recommends an action to the CEO — within the offence range — with their rationale. The case then goes to the CEO with that recommendation attached. This branch is an alternative to HR issuing the notice itself.",
+  "desc": "After the investigation and all discussion with the line manager and employee, HR can forward the case up instead of deciding it at HR level. <b>Case 1 &mdash; HR &rarr; CEO:</b> HR forwards the case directly to the CEO, and the CEO takes the final decision and closes the case. <b>Case 2 &mdash; HR &rarr; SMT &rarr; CEO:</b> HR forwards the case to the Senior Management Team, who recommend an action (within the offence range) with their rationale; the case then goes to the CEO, who takes the final decision and closes it. In both cases the CEO is the final decision-maker.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR &rarr; SMT &rarr; CEO</div><div style=\"background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:13px 15px;margin-bottom:10px\"><div style=\"font-size:11px;color:#7C2D12;font-weight:800;text-transform:uppercase;margin-bottom:5px\">SMT recommendation</div><div style=\"font-size:13px;font-weight:700;color:var(--navy)\"><span class=\"pen pen-S\">S10</span> 10-day suspension</div><div style=\"font-size:12px;color:var(--muted);margin-top:3px\">Given the severity, the SMT recommends this action to the CEO.</div></div><div style=\"display:flex;align-items:center;gap:8px\"><span class=\"st st-ceo\">With CEO</span><span style=\"font-size:11px;color:var(--muted)\">CEO makes the final decision</span></div>"
  },
  {
@@ -306,6 +306,7 @@ export const PANEL_GUIDE = {
     points: [
       'Cases needing HR action, in order: review & issue the official notice → record the employee response → record the decision.',
       'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
+      'For serious cases, after investigation you can Forward to CEO (CEO decides) or Forward to SMT (SMT recommends, then CEO decides) — in both, the CEO takes the final decision and closes the case.',
     ],
   },
   'staff-notices': {

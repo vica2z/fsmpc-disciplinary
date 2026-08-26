@@ -513,12 +513,15 @@ function HRQueue({ store }) {
                     <td dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
                     <td className="row-actions">
-                      {c.status === 'With HR' && c.investigation && <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</button>}
-                      <button className="btn btn-sm btn-navy" onClick={() => na.to === 'investigate' ? setInvestigating(c) : setActing({ c, action: na })}>{na.label}</button>
+                      {c.status === 'With HR' && !c.investigation &&
+                        <button className="btn btn-sm btn-navy" onClick={() => setInvestigating(c)}>Investigate</button>}
                       {c.status === 'With HR' && c.investigation && <>
-                        <button className="btn btn-sm btn-ghost" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
-                        <button className="btn btn-sm btn-ghost" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</button>
+                        <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
+                        <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
                       </>}
+                      {c.status !== 'With HR' &&
+                        <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
                     </td>
                   </tr>
                 );

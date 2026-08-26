@@ -87,6 +87,8 @@ export function apprStatusClass(s) {
     : 'st-draft';
 }
 
+export const COUNSEL_OUTCOMES = ['Resolved','Verbal admonishment','Escalated'];
+
 export const EXECUTIVES = [
   { id: 'exec-ops', name: 'Savenaca Tamani', title: 'Executive — Operations Group', depts: ['Operations','Terminals','Safety'] },
   { id: 'exec-corp', name: 'Johnny Adolph', title: 'Executive — Corporate Services', depts: ['Finance','Supply Chain','Admin'] },
@@ -178,6 +180,33 @@ export const SEED_CASES=[
 /* Per-panel guide — a short "how this panel works" shown on every screen,
    written from the FSMPC disciplinary procedure. */
 export const PANEL_GUIDE = {
+  'lm-counsel': {
+    title: 'How Counselling works',
+    role: 'lm',
+    points: [
+      'The first, informal step — before any formal case. When a performance or conduct problem first appears, counsel the employee and log it here.',
+      'Record what the issue was, what was discussed, and the outcome: Resolved (no further action), Verbal admonishment (oral warning kept on file), or Escalate to a formal case.',
+      'Escalating carries the counselling notes into the new case. HR, Executives and the CEO can see this log — so issues managed early are visible, not just formal cases.',
+    ],
+  },
+  'counsel-log': {
+    title: 'How the Counselling Log works',
+    role: 'hr',
+    points: [
+      'Every informal counselling recorded by line managers, before it becomes (or instead of becoming) a formal case.',
+      'Shows the issue, what was discussed, the outcome, and whether it was escalated to a case.',
+      'Read-only oversight — it confirms that problems are being counselled and managed early across the company.',
+    ],
+  },
+  'exec-counsel': {
+    title: 'How Portfolio Counselling works',
+    role: 'exec',
+    points: [
+      'The informal counselling records for employees in your portfolio, before formal cases.',
+      'Lets you see that line managers are addressing issues early, and which ones escalated.',
+      'Read-only oversight view.',
+    ],
+  },
   'exec-portfolio': {
     title: 'How My Portfolio works',
     role: 'exec',
@@ -305,11 +334,11 @@ export const PANEL_GUIDE = {
 /* Role-based navigation: each role sees only its own panels in the loop. */
 export const ROLE_NAV = {
   ict:   [ {id:'setup',label:'System Setup',icon:'⚙️'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'employees',label:'Employees',icon:'👥'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-counsel',label:'Counselling',icon:'💬'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  ceo:   [ {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  ceo:   [ {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-counsel',label:'Portfolio Counselling',icon:'💬'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
 };
 
 export const ROLE_ORDER = ['lm','hr','staff','exec','ceo','ict'];

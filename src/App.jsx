@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
+import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, COUNSEL_OUTCOMES, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
 import {
   offByN, occurrenceFor, occLabel, rangeForOcc,
   penClass, penFull, optionsInRange, rangeChips, empById,
@@ -66,6 +66,9 @@ export default function App() {
         {/* Line Manager */}
         {view === 'lm-queue' && <LMQueue store={store} setView={setView} />}
         {view === 'lm-raise' && <LMRaise store={store} setView={setView} />}
+        {view === 'lm-counsel' && <LMCounselling store={store} />}
+        {view === 'counsel-log' && <CounsellingLog store={store} />}
+        {view === 'exec-counsel' && <ExecCounselling store={store} execId={execId} />}
         {/* HR */}
         {view === 'hr-queue' && <HRQueue store={store} />}
         {view === 'hr-all' && <HRAll store={store} />}
@@ -197,6 +200,208 @@ function LMQueue({ store, setView }) {
           </table>
         ) : <Empty>No active cases. Use “Raise a case” to start one.</Empty>}
       </Card>
+    </div>
+  );
+}
+
+
+/* ═══════════ COUNSELLING (LM) — the informal pre-case step ═══════════ */
+function counselOutcomeClass(o){
+  return o === 'Resolved' ? 'st-closed' : o === 'Verbal admonishment' ? 'st-hr' : o === 'Escalated' ? 'st-appeal' : 'st-draft';
+}
+
+function LMCounselling({ store }) {
+  const { couns, emps } = store;
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [escalating, setEscalating] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="Counselling" sub="The informal first step — counsel and record before any formal case"
+        right={<button className="btn btn-navy" onClick={() => setAdding(true)}>+ Log counselling</button>} />
+      <GuideBanner view="lm-counsel" />
+      <Card>
+        {couns.length ? (
+          <table className="table">
+            <thead><tr><th>Ref</th><th>Employee</th><th>Issue</th><th>Date</th><th>Outcome</th><th>Manage</th></tr></thead>
+            <tbody>
+              {couns.map(c => {
+                const e = empById(c.empId, emps);
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+                    <td>{c.topic}<div className="sub">{c.discussed}</div></td>
+                    <td>{c.date}</td>
+                    <td><span className={'pill ' + counselOutcomeClass(c.outcome)}>{c.outcome}</span>{c.escalatedTo && <div className="sub">→ {c.escalatedTo}</div>}</td>
+                    <td className="row-actions">
+                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-navy" onClick={() => setEscalating(c)}>Escalate</button>}
+                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-ghost" onClick={() => setEditing(c)}>Edit</button>}
+                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete counselling ' + c.id + '?')) store.deleteCounselling(c.id); }}>Delete</button>}
+                      {c.outcome === 'Escalated' && <span className="sub">Now a formal case</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <Empty>No counselling recorded yet. Log the informal step here before raising a case.</Empty>}
+      </Card>
+      {(adding || editing) && <CounsellingModal store={store} rec={editing} onClose={() => { setAdding(false); setEditing(null); }} />}
+      {escalating && <EscalateModal store={store} cn={escalating} onClose={() => setEscalating(null)} />}
+    </div>
+  );
+}
+
+function CounsellingModal({ store, rec, onClose }) {
+  const { emps } = store;
+  const isNew = !rec;
+  const [f, setF] = useState({
+    empId: rec?.empId || '', topic: rec?.topic || '', discussed: rec?.discussed || '',
+    outcome: rec?.outcome || 'Resolved', date: rec?.date || '2026-06-21', by: rec?.by || '',
+  });
+  const set = k => e => setF(s => ({ ...s, [k]: e.target.value }));
+  function save() {
+    if (!f.empId) { alert('Select an employee.'); return; }
+    if (!f.topic.trim()) { alert('Describe the issue.'); return; }
+    const sup = empById(+f.empId, emps)?.sup || f.by;
+    const payload = { ...f, empId: +f.empId, by: f.by || sup };
+    if (isNew) store.addCounselling(payload); else store.updateCounselling(rec.id, payload);
+    onClose();
+  }
+  return (
+    <Modal title={isNew ? 'Log counselling' : `Edit ${rec.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>{isNew ? 'Save' : 'Save changes'}</button></>}>
+      <Field label="Employee">
+        <select className="input" value={f.empId} onChange={set('empId')} disabled={!isNew}>
+          <option value="">— Select employee —</option>
+          {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
+        </select>
+      </Field>
+      <Field label="Issue / concern"><textarea className="input" rows={2} value={f.topic} onChange={set('topic')} placeholder="What performance or conduct problem occurred…" /></Field>
+      <Field label="What was discussed"><textarea className="input" rows={2} value={f.discussed} onChange={set('discussed')} placeholder="The counselling conversation, and any agreement reached…" /></Field>
+      <div className="form-grid">
+        <Field label="Outcome">
+          <select className="input" value={f.outcome} onChange={set('outcome')}>
+            <option value="Resolved">Resolved — no further action</option>
+            <option value="Verbal admonishment">Verbal admonishment (oral warning on file)</option>
+          </select>
+        </Field>
+        <Field label="Date"><input type="date" className="input" value={f.date} onChange={set('date')} /></Field>
+      </div>
+      <p className="hint">To take this further, save it and use “Escalate” to raise a formal case — the notes carry forward.</p>
+    </Modal>
+  );
+}
+
+function EscalateModal({ store, cn, onClose }) {
+  const { offs, emps } = store;
+  const [offN, setOffN] = useState('');
+  const [rec, setRec] = useState('');
+  const [date, setDate] = useState('2026-06-21');
+  const e = empById(cn.empId, emps);
+  const penalty = useMemo(() => {
+    if (!offN) return null;
+    const o = offByN(+offN, offs); if (!o) return null;
+    const occ = occurrenceFor(cn.empId, +offN, store.cases);
+    const pair = rangeForOcc(o, occ);
+    return { o, occ, pair, opts: optionsInRange(pair) };
+  }, [offN, offs, cn, store.cases]);
+  function go() {
+    if (!offN) { alert('Select the offence to charge.'); return; }
+    if (!rec) { alert('Select a recommended action within the range.'); return; }
+    store.escalateCounselling(cn.id, +offN, rec, date);
+    onClose();
+  }
+  return (
+    <Modal title={`Escalate ${cn.id} to a formal case`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Escalate to case</button></>}>
+      <div className="penalty-box">
+        <div className="sub">Carrying forward from counselling</div>
+        <div className="penalty-title">{e?.name} — {cn.topic}</div>
+        {cn.discussed && <div className="notice-quote" style={{ marginTop: 6 }}>{cn.discussed}</div>}
+      </div>
+      <Field label="Offence">
+        <select className="input" value={offN} onChange={e => { setOffN(e.target.value); setRec(''); }}>
+          <option value="">— Select offence —</option>
+          {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
+        </select>
+      </Field>
+      {penalty && (
+        <div className="penalty-box">
+          <div className="penalty-title">{occLabel(penalty.occ)} occurrence — range:</div>
+          <div className="penalty-range"><span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(penalty.pair) }} /></div>
+          {penalty.o.note && <div className="penalty-note">⚠ {penalty.o.note}</div>}
+        </div>
+      )}
+      <div className="form-grid">
+        <Field label="Recommended action">
+          <select className="input" value={rec} onChange={e => setRec(e.target.value)} disabled={!penalty}>
+            <option value="">— Select action —</option>
+            {penalty && penalty.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
+          </select>
+        </Field>
+        <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
+      </div>
+      <p className="hint">This creates a formal case (status: With HR) linked to {cn.id}, and marks the counselling as Escalated.</p>
+    </Modal>
+  );
+}
+
+/* Shared read-only counselling log (HR / CEO). Optionally scoped by a filter fn. */
+function CounsellingTable({ store, filterFn }) {
+  const { couns, emps } = store;
+  const rows = filterFn ? couns.filter(filterFn) : couns;
+  return rows.length ? (
+    <table className="table">
+      <thead><tr><th>Ref</th><th>Employee</th><th>Dept</th><th>Issue</th><th>Discussed</th><th>Date</th><th>Outcome</th></tr></thead>
+      <tbody>
+        {rows.map(c => {
+          const e = empById(c.empId, emps);
+          return (
+            <tr key={c.id}>
+              <td className="mono">{c.id}</td>
+              <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+              <td>{e?.dept}</td>
+              <td>{c.topic}</td>
+              <td className="sub">{c.discussed}</td>
+              <td>{c.date}</td>
+              <td><span className={'pill ' + counselOutcomeClass(c.outcome)}>{c.outcome}</span>{c.escalatedTo && <div className="sub">→ {c.escalatedTo}</div>}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  ) : <Empty>No counselling records.</Empty>;
+}
+
+function CounsellingLog({ store }) {
+  const { couns } = store;
+  const n = o => couns.filter(c => c.outcome === o).length;
+  return (
+    <div className="page">
+      <PageHead title="Counselling Log" sub="Informal counselling recorded before formal cases — oversight" />
+      <GuideBanner view="counsel-log" />
+      <div className="stat-grid">
+        <Stat n={couns.length} label="Total logged" color="#134E4A" />
+        <Stat n={n('Resolved')} label="Resolved" color="#059669" />
+        <Stat n={n('Verbal admonishment')} label="Verbal admonishment" color="#B45309" />
+        <Stat n={n('Escalated')} label="Escalated to case" color="#6D28D9" />
+      </div>
+      <Card><CounsellingTable store={store} /></Card>
+    </div>
+  );
+}
+
+function ExecCounselling({ store, execId }) {
+  const { emps } = store;
+  const { exec, inPortfolio } = useExec(execId, emps);
+  const ids = new Set(inPortfolio.map(e => e.id));
+  return (
+    <div className="page">
+      <PageHead title="Portfolio Counselling" sub={`Informal counselling across ${exec.title} — oversight`} />
+      <GuideBanner view="exec-counsel" />
+      <Card><CounsellingTable store={store} filterFn={c => ids.has(c.empId)} /></Card>
     </div>
   );
 }

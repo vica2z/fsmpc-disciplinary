@@ -23,6 +23,10 @@ export function useStore() {
   const [emps,  setEmps]  = useState(() => initial?.emps  ?? SEED_EMP.map(e => ({ ...e })));
   const [offs,  setOffs]  = useState(() => initial?.offs  ?? SEED_OFF.map(o => ({ ...o })));
   const [logs,  setLogs]  = useState(() => initial?.logs  ?? []);
+  const [couns, setCouns] = useState(() => initial?.couns ?? [
+    { id:'CN-2001', empId:341, topic:'Repeated late arrivals over two weeks', discussed:'Agreed to adjust commute; verbal reminder given.', outcome:'Resolved', date:'2026-06-10', by:'Wayne Narruhn' },
+    { id:'CN-2002', empId:447, topic:'Incomplete handover notes', discussed:'Explained standard; employee acknowledged.', outcome:'Verbal admonishment', date:'2026-06-14', by:'Lesivou Bulabalavu' },
+  ]);
 
   const log = useCallback((role, caseId, action) => {
     setLogs(prev => [{
@@ -32,8 +36,8 @@ export function useStore() {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(LS, JSON.stringify({ cases, emps, offs, logs })); } catch (e) { /* ignore */ }
-  }, [cases, emps, offs, logs]);
+    try { localStorage.setItem(LS, JSON.stringify({ cases, emps, offs, logs, couns })); } catch (e) { /* ignore */ }
+  }, [cases, emps, offs, logs, couns]);
 
   /* ---- CASES ---- */
   const nextCaseId = useCallback((list) => {
@@ -88,6 +92,42 @@ export function useStore() {
   const deleteOff = useCallback((n) =>
     setOffs(prev => prev.filter(o => o.n !== n)), []);
 
+  const nextCounsId = useCallback((list) => {
+    let max = 2000; list.forEach(c => { const m = /CN-(\d+)/.exec(c.id); if (m) max = Math.max(max, +m[1]); });
+    return 'CN-' + (max + 1);
+  }, []);
+
+  const addCounselling = useCallback((rec) => {
+    let newId;
+    setCouns(prev => { newId = nextCounsId(prev); return [{ id:newId, ...rec }, ...prev]; });
+    log('lm', newId, 'Logged counselling (' + rec.outcome + ') for employee');
+  }, [nextCounsId, log]);
+
+  const updateCounselling = useCallback((id, patch) =>
+    setCouns(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c)), []);
+
+  const deleteCounselling = useCallback((id) =>
+    setCouns(prev => prev.filter(c => c.id !== id)), []);
+
+  /* escalate a counselling record into a formal case (carries notes forward) */
+  const escalateCounselling = useCallback((counsId, offN, rec, date) => {
+    let newCaseId;
+    const cn = couns.find(c => c.id === counsId);
+    if (!cn) return;
+    setCases(prev => {
+      const occ = occurrenceFor(cn.empId, +offN, prev);
+      newCaseId = nextCaseId(prev);
+      return [{
+        id: newCaseId, empId: cn.empId, off: +offN, occ, rec,
+        status: 'With HR', raised: date || '2026-06-21',
+        desc: 'Escalated from counselling ' + counsId + '. ' + (cn.topic || '') + (cn.discussed ? ' — ' + cn.discussed : ''),
+        fromCounselling: counsId,
+      }, ...prev];
+    });
+    setCouns(prev => prev.map(c => c.id === counsId ? { ...c, outcome: 'Escalated', escalatedTo: newCaseId } : c));
+    log('lm', newCaseId, 'Escalated counselling ' + counsId + ' to a formal case');
+  }, [couns, nextCaseId, log]);
+
   const submitToHR = useCallback((id) => { updateCase(id, { status: 'With HR' }); log('lm', id, 'Submitted draft case to HR'); }, [updateCase, log]);
 
   const resetAll = useCallback(() => {
@@ -96,13 +136,15 @@ export function useStore() {
       setEmps(SEED_EMP.map(e => ({ ...e })));
       setOffs(SEED_OFF.map(o => ({ ...o })));
       setLogs([]);
+      setCouns([]);
     }
   }, []);
 
   return {
-    cases, emps, offs, logs,
+    cases, emps, offs, logs, couns,
     submitCase, updateCase, deleteCase,
     issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR,
+    addCounselling, updateCounselling, deleteCounselling, escalateCounselling,
     addEmp, updateEmp, deleteEmp,
     addOff, updateOff, deleteOff,
     resetAll,

@@ -176,6 +176,11 @@ export function useStore() {
     log('hr', id, 'HR acknowledged the serious-offence alert');
   }, [updateCase, log]);
 
+  const reinstateEmployee = useCallback((id, reason, date) => {
+    updateCase(id, { reinstated: true, reinstateReason: reason || '', reinstateDate: date || '2026-06-21' });
+    log('ceo', id, 'CEO re-established employee to payroll (reversed dismissal)' + (reason ? ' — ' + reason : ''));
+  }, [updateCase, log]);
+
   const submitToHR = useCallback((id) => { updateCase(id, { status: 'With HR' }); log('lm', id, 'Submitted draft case to HR'); }, [updateCase, log]);
 
   const resetAll = useCallback(() => {
@@ -192,7 +197,7 @@ export function useStore() {
     cases, emps, offs, logs, couns,
     submitCase, updateCase, deleteCase,
     issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation, saveJury, saveProperty,
-    forwardToCEO, forwardToSMT, smtRecommend, ceoDecideReferral,
+    forwardToCEO, forwardToSMT, smtRecommend, ceoDecideReferral, reinstateEmployee,
     addCounselling, updateCounselling, deleteCounselling, escalateCounselling,
     flagSerious, acknowledgeSerious,
     addEmp, updateEmp, deleteEmp,

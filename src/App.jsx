@@ -77,6 +77,7 @@ export default function App() {
         {/* CEO */}
         {view === 'ceo-referrals' && <CEOReferrals store={store} />}
         {view === 'ceo-appeals' && <CEOAppeals store={store} />}
+        {view === 'ceo-reinstate' && <CEOReinstate store={store} />}
         {view === 'smt-queue' && <SMTQueue store={store} />}
         {view === 'smt-decided' && <SMTDecided store={store} />}
         {/* Executive */}
@@ -1174,6 +1175,65 @@ function CEODecisionModal({ store, c, onClose }) {
         </select>
       </Field>
       <Field label="Note (optional)"><textarea className="input" rows={2} value={note} onChange={ev => setNote(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
+
+
+function CEOReinstate({ store }) {
+  const { cases, emps, offs } = store;
+  // dismissed = closed cases whose final action is Dismissal
+  const dismissed = cases.filter(c => c.status === 'Closed' && (c.decision || c.rec) === 'D');
+  const [acting, setActing] = useState(null);
+  return (
+    <div className="page">
+      <PageHead title="Re-instatement" sub="Re-establish a previously terminated employee into the payroll system" />
+      <GuideBanner view="ceo-reinstate" />
+      {dismissed.length ? dismissed.map(c => {
+        const e = empById(c.empId, emps), o = offByN(c.off, offs);
+        return (
+          <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
+            <div className="notice-body">
+              <div><span className="sub">Dismissed for:</span> {o?.name} — {occLabel(c.occ)} occurrence</div>
+              {c.outcome && <div className="sub">{c.outcome}</div>}
+              {c.reinstated && <div className="reinstate-note">♻ Re-established to payroll on {fmtDate(c.reinstateDate)}{c.reinstateReason ? ` — ${c.reinstateReason}` : ''}</div>}
+            </div>
+            <div className="notice-actions">
+              {c.reinstated
+                ? <span className="pill st-closed">Re-instated</span>
+                : <><span className="pill pen-D" style={{padding:'4px 11px'}}>Dismissed</span>
+                   <button className="btn btn-sm btn-navy" onClick={() => setActing(c)}>Re-establish to payroll</button></>}
+            </div>
+          </Card>
+        );
+      }) : <Empty>No dismissed employees to re-instate.</Empty>}
+      {acting && <ReinstateModal store={store} c={acting} onClose={() => setActing(null)} />}
+    </div>
+  );
+}
+
+function ReinstateModal({ store, c, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const [reason, setReason] = useState('');
+  const [date, setDate] = useState('2026-06-21');
+  function go() {
+    if (!reason.trim()) { alert('Please give a reason for re-instatement.'); return; }
+    store.reinstateEmployee(c.id, reason.trim(), date);
+    onClose();
+  }
+  return (
+    <Modal title={`Re-establish ${e?.name} to payroll`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Confirm re-instatement</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {e?.title}</div>
+        <div className="sub">This reverses the dismissal from case {c.id} ({o?.name}) and restores the employee into the payroll system. This action is recorded in the audit log.</div>
+      </div>
+      <Field label="Reason for re-instatement">
+        <textarea className="input" rows={3} value={reason} onChange={ev => setReason(ev.target.value)} placeholder="e.g. successful appeal, new evidence, compassionate grounds…" />
+      </Field>
+      <Field label="Effective date"><input type="date" className="input" value={date} onChange={ev => setDate(ev.target.value)} /></Field>
+      <p className="hint">Only the CEO can re-establish a terminated employee. Payroll and HR should be notified to restore records.</p>
     </Modal>
   );
 }

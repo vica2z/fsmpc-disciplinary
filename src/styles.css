@@ -258,3 +258,6 @@ button{font-family:var(--font)}
 .prop-note{font-size:12.5px;padding:6px 10px}
 .prop-summary{display:flex;align-items:center;margin:6px 0 14px}
 @media(max-width:600px){.prop-row{grid-template-columns:1fr}}
+
+/* Re-instatement */
+.reinstate-note{background:#D1FAE5;border:1px solid #6EE7B7;color:#065F46;border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px;display:inline-block}

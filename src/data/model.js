@@ -181,7 +181,7 @@ export const STEPS = [
   "role": "ceo",
   "title": "CEO — final decision &amp; weekly oversight",
   "short": "CEO",
-  "desc": "The CEO (or an independent tribunal of peers) is the final arbiter on any appeal — their decision is final. Separately, the CEO also receives a weekly report of all disciplinary cases at the Toolbox meeting, to confirm conduct is being managed fairly and consistently across every department.",
+  "desc": "The CEO (or an independent tribunal of peers) is the final arbiter on any appeal — their decision is final. Separately, the CEO also receives a weekly report of all disciplinary cases at the Toolbox meeting, to confirm conduct is being managed fairly and consistently across every department. The CEO is also the only role that can <b>re-establish a previously terminated employee</b> back into the payroll system \u2014 for example after a successful appeal or new evidence \u2014 by recording a reason and effective date on the dismissed case.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">CEO · Final decision</div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Appeal</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\">Berny Etse — written warning</span></div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Final decision</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\"><span class=\"pen pen-R\">R</span> Upheld (warning stands)</span></div><div style=\"height:1px;background:var(--border);margin:12px 0\"></div><div style=\"font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px\">Weekly report to CEO</div><div style=\"display:flex;gap:10px;flex-wrap:wrap\"><span class=\"tag\">4 active</span><span class=\"tag\">1 awaiting response</span><span class=\"tag\">1 under appeal</span><span class=\"tag\">3 closed</span></div>"
  }
 ];
@@ -201,6 +201,15 @@ export const SEED_CASES=[
 /* Per-panel guide — a short "how this panel works" shown on every screen,
    written from the FSMPC disciplinary procedure. */
 export const PANEL_GUIDE = {
+  'ceo-reinstate': {
+    title: 'How Re-instatement works',
+    role: 'ceo',
+    points: [
+      'Lists employees who were dismissed through a disciplinary case.',
+      'The CEO may re-establish a previously terminated employee back into the payroll system — for example after a successful appeal, new evidence, or on compassionate grounds.',
+      'Re-instating records the reason and date, reverses the dismissal on the case, and is written to the audit log. Only the CEO can do this.',
+    ],
+  },
   'ceo-referrals': {
     title: 'How Referrals works',
     role: 'ceo',
@@ -388,7 +397,7 @@ export const ROLE_NAV = {
   lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-counsel',label:'Counselling',icon:'💬'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  ceo:   [ {id:'ceo-referrals',label:'Referrals',icon:'📨'}, {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  ceo:   [ {id:'ceo-referrals',label:'Referrals',icon:'📨'}, {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'ceo-reinstate',label:'Re-instatement',icon:'♻️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   smt:   [ {id:'smt-queue',label:'SMT Referrals',icon:'🏛️'}, {id:'smt-decided',label:'Recommended',icon:'✅'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-counsel',label:'Portfolio Counselling',icon:'💬'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
 };

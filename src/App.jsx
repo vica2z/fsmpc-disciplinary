@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, COUNSEL_OUTCOMES, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
+import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, COUNSEL_OUTCOMES, PROPERTY_ITEMS, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
 import {
   offByN, occurrenceFor, occLabel, rangeForOcc,
   penClass, penFull, optionsInRange, rangeChips, empById,
@@ -172,6 +172,9 @@ function AuditLog({ store }) {
 function LMQueue({ store, setView }) {
   const { cases, emps, offs } = store;
   const mine = cases.filter(c => c.status === 'Draft' || c.status === 'With HR');
+  const dismissals = cases.filter(c => c.status === 'Closed' && (c.decision || c.rec) === 'D');
+  const [propCase, setPropCase] = useState(null);
+  const propDone = c => { const it = c.property?.items || []; return it.length ? it.filter(i => i.returned).length : 0; };
   return (
     <div className="page">
       <PageHead title="My Team — Disciplinary" sub="Cases you have raised or are drafting"
@@ -190,11 +193,12 @@ function LMQueue({ store, setView }) {
                     <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
                     <td>{o?.name}</td>
                     <td><span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</td>
-                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
+                    <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.serious && <div style={{ marginTop: 4 }}><span className="pill st-serious">⚠ Serious</span></div>}</td>
                     <td className="row-actions">
                       {c.status === 'Draft' && <button className="btn btn-sm btn-navy" onClick={() => store.submitToHR(c.id)}>Submit to HR</button>}
                       {c.status === 'Draft' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete draft ' + c.id + '?')) store.deleteCase(c.id); }}>Delete</button>}
-                      {c.status === 'With HR' && <span className="sub">With HR for review</span>}
+                      {!c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, true)}>Flag serious</button>}
+                      {c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, false)}>Unflag</button>}
                     </td>
                   </tr>
                 );
@@ -203,9 +207,88 @@ function LMQueue({ store, setView }) {
           </table>
         ) : <Empty>No active cases. Use “Raise a case” to start one.</Empty>}
       </Card>
+
+      {dismissals.length > 0 && (
+        <Card title="Company property to retrieve" sub="On dismissal, retrieve all company property from the employee">
+          <table className="table">
+            <thead><tr><th>Case</th><th>Employee</th><th>Department</th><th>Property returned</th><th></th></tr></thead>
+            <tbody>
+              {dismissals.map(c => {
+                const e = empById(c.empId, emps);
+                const items = c.property?.items || [];
+                const done = propDone(c);
+                const complete = c.property?.complete;
+                return (
+                  <tr key={c.id}>
+                    <td className="mono">{c.id}</td>
+                    <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
+                    <td>{e?.dept}</td>
+                    <td>
+                      {complete ? <span className="pill st-closed">✓ All returned</span>
+                        : items.length ? <span className="pill st-hr">{done}/{items.length} returned</span>
+                        : <span className="pill st-draft">Not started</span>}
+                    </td>
+                    <td className="row-actions">
+                      <button className="btn btn-sm btn-navy" onClick={() => setPropCase(c)}>Retrieve property</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {propCase && <PropertyModal store={store} c={propCase} onClose={() => setPropCase(null)} />}
     </div>
   );
 }
+
+/* Company-property retrieval checklist (on dismissal) */
+function PropertyModal({ store, c, onClose }) {
+  const { emps } = store;
+  const e = empById(c.empId, emps);
+  const existing = c.property?.items;
+  const [items, setItems] = useState(
+    existing && existing.length ? existing
+      : PROPERTY_ITEMS.map(label => ({ label, returned: false, note: '' }))
+  );
+  const [ackName, setAckName] = useState(c.property?.ackName || '');
+  const toggle = i => setItems(list => list.map((it, idx) => idx === i ? { ...it, returned: !it.returned } : it));
+  const setNote = (i, v) => setItems(list => list.map((it, idx) => idx === i ? { ...it, note: v } : it));
+  const done = items.filter(i => i.returned).length;
+  const complete = done === items.length;
+
+  function save() {
+    store.saveProperty(c.id, { items, complete, ackName, savedAt: '2026-06-21' });
+    onClose();
+  }
+  return (
+    <Modal title={`Property retrieval — ${e?.name}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save checklist</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {e?.title}</div>
+        <div className="sub">On dismissal, retrieve all company property from the employee. Tick each item as it is returned; add a note for anything outstanding.</div>
+      </div>
+      <div className="prop-list">
+        {items.map((it, i) => (
+          <div key={i} className={'prop-row' + (it.returned ? ' done' : '')}>
+            <label className="prop-check">
+              <input type="checkbox" checked={it.returned} onChange={() => toggle(i)} />
+              <span>{it.label}</span>
+            </label>
+            <input className="input prop-note" placeholder="Note (e.g. serial no., or outstanding)" value={it.note} onChange={ev => setNote(i, ev.target.value)} />
+          </div>
+        ))}
+      </div>
+      <div className="prop-summary">
+        <span className={complete ? 'pill st-closed' : 'pill st-hr'}>{done}/{items.length} returned</span>
+        {complete && <span className="sub" style={{ marginLeft: 8 }}>All company property retrieved.</span>}
+      </div>
+      <Field label="Received / checked by"><input className="input" value={ackName} onChange={ev => setAckName(ev.target.value)} placeholder="Line manager name" /></Field>
+    </Modal>
+  );
+}
+
 
 
 /* ═══════════ COUNSELLING (LM) — the informal pre-case step ═══════════ */
@@ -416,6 +499,7 @@ function LMRaise({ store, setView }) {
   const [rec, setRec] = useState('');
   const [desc, setDesc] = useState('');
   const [date, setDate] = useState('2026-06-21');
+  const [serious, setSerious] = useState(false);
 
   const penalty = useMemo(() => {
     if (!empId || !offN) return null;
@@ -429,8 +513,8 @@ function LMRaise({ store, setView }) {
   function submit(asDraft) {
     if (!empId || !offN) { alert('Select an employee and an offence.'); return; }
     if (!asDraft && !rec) { alert('Select a recommended action within the range.'); return; }
-    store.submitCase(+empId, +offN, rec || penalty.opts[0], desc, date, asDraft);
-    setEmpId(''); setOffN(''); setRec(''); setDesc('');
+    store.submitCase(+empId, +offN, rec || penalty.opts[0], desc, date, asDraft, serious);
+    setEmpId(''); setOffN(''); setRec(''); setDesc(''); setSerious(false);
     setView('lm-queue');
   }
 
@@ -471,6 +555,10 @@ function LMRaise({ store, setView }) {
           <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
         </div>
         <Field label="Statement of facts"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What happened, investigations, employee response so far…" /></Field>
+        <label className="serious-check">
+          <input type="checkbox" checked={serious} onChange={e => setSerious(e.target.checked)} />
+          <span><b>Serious offence</b> — report to HR immediately. HR is alerted now, while the investigation continues.</span>
+        </label>
         <div className="form-actions">
           <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
           <button className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</button>
@@ -486,7 +574,11 @@ function HRQueue({ store }) {
   const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision'].includes(c.status));
   const [acting, setActing] = useState(null);
   const [investigating, setInvestigating] = useState(null);
+  const [juring, setJuring] = useState(null);
   const [forwarding, setForwarding] = useState(null); // {c, to:'CEO'|'SMT'}
+  const [lettering, setLettering] = useState(null);
+  const [paffing, setPaffing] = useState(null);
+  const [pafing, setPafing] = useState(null);
   const actionFor = c => c.status === 'With HR'
       ? (c.investigation ? { label: 'Issue notice', to: 'Awaiting Response' } : { label: 'Investigate', to: 'investigate' })
     : c.status === 'Awaiting Response' ? { label: 'Record response', to: 'Awaiting Decision' }
@@ -495,6 +587,24 @@ function HRQueue({ store }) {
     <div className="page">
       <PageHead title="HR Queue" sub="Cases awaiting HR action, in workflow order" />
       <GuideBanner view="hr-queue" />
+      {(() => {
+        const serious = queue.filter(c => c.serious && !c.seriousAck);
+        if (!serious.length) return null;
+        return (
+          <div className="serious-alert">
+            <div className="serious-alert-h">⚠ {serious.length} serious offence{serious.length > 1 ? 's' : ''} reported — action required while investigation is ongoing</div>
+            {serious.map(c => {
+              const e = empById(c.empId, emps), o = offByN(c.off, offs);
+              return (
+                <div key={c.id} className="serious-alert-row">
+                  <div><b>{c.id}</b> · {e?.name} — {o?.name}</div>
+                  <button className="btn btn-sm btn-navy" onClick={() => store.acknowledgeSerious(c.id)}>Acknowledge</button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
       <Card>
         {queue.length ? (
           <table className="table">
@@ -505,8 +615,8 @@ function HRQueue({ store }) {
                 const pair = o ? rangeForOcc(o, c.occ) : null;
                 const na = actionFor(c);
                 return (
-                  <tr key={c.id}>
-                    <td className="mono">{c.id}</td>
+                  <tr key={c.id} className={c.serious ? 'row-serious' : ''}>
+                    <td className="mono">{c.id}{c.serious && <div style={{marginTop:4}}><span className="pill st-serious">⚠ Serious</span></div>}</td>
                     <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
                     <td>{o?.name}</td>
                     <td>{occLabel(c.occ)}</td>
@@ -517,11 +627,18 @@ function HRQueue({ store }) {
                         <button className="btn btn-sm btn-navy" onClick={() => setInvestigating(c)}>Investigate</button>}
                       {c.status === 'With HR' && c.investigation && <>
                         <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setJuring(c)}>{c.jury?.active ? 'Jury ✓' : 'Jury of Peers'}</button>
                         <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
                         <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
                       </>}
                       {c.status !== 'With HR' &&
                         <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
+                      {['Awaiting Response','Awaiting Decision','Closed'].includes(c.status) &&
+                        <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
+                      {c.status === 'Closed' &&
+                        <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
+                      {c.status === 'Closed' &&
+                        <button className="btn btn-sm btn-ghost" onClick={() => setPafing(c)}>PAF</button>}
                     </td>
                   </tr>
                 );
@@ -532,8 +649,254 @@ function HRQueue({ store }) {
       </Card>
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
       {investigating && <InvestigationModal store={store} c={investigating} onClose={() => setInvestigating(null)} />}
+      {juring && <JuryModal store={store} c={juring} onClose={() => setJuring(null)} />}
       {forwarding && <ForwardModal store={store} c={forwarding.c} to={forwarding.to} onClose={() => setForwarding(null)} />}
+      {lettering && <LetterModal store={store} c={lettering} onClose={() => setLettering(null)} />}
+      {paffing && <PAFModal store={store} c={paffing} onClose={() => setPaffing(null)} />}
+      {pafing && <PAFModal store={store} c={pafing} onClose={() => setPafing(null)} />}
     </div>
+  );
+}
+
+/* Disciplinary notice / letter — auto-filled, printable */
+function LetterModal({ store, c, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const decided = c.status === 'Closed';
+  const action = c.decision || c.rec;
+  const today = fmtDate('2026-06-21');
+
+  function printLetter() {
+    const node = document.getElementById('disc-letter');
+    const w = window.open('', '_blank', 'width=820,height=1000');
+    if (!w) { alert('Please allow pop-ups to print the letter.'); return; }
+    w.document.write('<html><head><title>Disciplinary Notice — ' + c.id + '</title>');
+    w.document.write('<style>body{font-family:Georgia,serif;color:#111;line-height:1.6;padding:48px;max-width:720px;margin:auto}h1{font-size:20px}h2{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:#0D2B55;border-bottom:2px solid #C9A84C;padding-bottom:4px}.row{margin:6px 0}.lbl{font-weight:bold;display:inline-block;min-width:170px}.sig{margin-top:48px;display:flex;justify-content:space-between}.sig div{border-top:1px solid #333;padding-top:6px;width:45%;font-size:13px}</style></head><body>');
+    w.document.write(node.innerHTML);
+    w.document.write('</body></html>');
+    w.document.close(); w.focus();
+    setTimeout(() => { w.print(); }, 300);
+  }
+
+  return (
+    <Modal title={`Disciplinary Notice — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Close</button><button className="btn btn-navy" onClick={printLetter}>🖨 Print / Save PDF</button></>}>
+      <div id="disc-letter" className="letter">
+        <div className="letter-head">
+          <div><b>FIJI SUGAR / FSMPC</b><div className="sub">Human Resources Office</div></div>
+          <div className="sub" style={{ textAlign: 'right' }}>Ref: {c.id}<br />Date: {today}</div>
+        </div>
+        <h1>Notice of Disciplinary {decided ? 'Decision' : 'Charge'}</h1>
+        <div className="row"><span className="lbl">To:</span> {e?.name}, {e?.title}</div>
+        <div className="row"><span className="lbl">Department:</span> {e?.dept}</div>
+        <div className="row"><span className="lbl">Supervisor:</span> {e?.sup}</div>
+
+        <h2>The charge</h2>
+        <div className="row"><span className="lbl">Offence:</span> {o?.name}</div>
+        <div className="row"><span className="lbl">Category:</span> {o?.cat}</div>
+        <div className="row"><span className="lbl">Occurrence:</span> {occLabel(c.occ)}</div>
+        {c.desc && <div className="row"><span className="lbl">Details:</span> {c.desc}</div>}
+        {o?.note && <div className="row"><span className="lbl">Note:</span> {o.note}</div>}
+
+        {c.investigation?.findings && <>
+          <h2>Investigation</h2>
+          <div className="row">{c.investigation.findings}</div>
+          {c.investigation.witnesses?.length > 0 && <div className="row"><span className="lbl">Witnesses:</span> {c.investigation.witnesses.map(w => w.name).join(', ')}</div>}
+        </>}
+
+        <h2>{decided ? 'Decision' : 'Proposed action'}</h2>
+        <div className="row"><span className="lbl">Action:</span> {penFull(action)}</div>
+        {c.smtRec && <div className="row"><span className="lbl">SMT recommendation:</span> {penFull(c.smtRec)}</div>}
+        {c.outcome && <div className="row"><span className="lbl">Outcome:</span> {c.outcome}</div>}
+
+        {!decided && <>
+          <h2>Your right to respond</h2>
+          <div className="row">You have <b>5 working days</b> from the date of this notice to submit a written response. You may also appeal any decision within <b>10 working days</b>. If you have a genuine reason you cannot respond in time, a reasonable extension may be granted.</div>
+        </>}
+
+        <div className="sig">
+          <div>HR Manager<br /><span className="sub">Human Resources Office</span></div>
+          <div>Employee acknowledgement<br /><span className="sub">Signature &amp; date</span></div>
+        </div>
+      </div>
+      <p className="hint">Auto-filled from the case. Use Print / Save PDF to issue it. Content updates automatically if the case changes.</p>
+    </Modal>
+  );
+}
+
+
+/* Personnel Action Form (PAF) — official form to action a disciplinary decision */
+function PAFModal({ store, c, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const action = c.decision || c.rec;
+  const today = fmtDate('2026-06-21');
+
+  // map the penalty to a payroll-facing action type + effect
+  const isDismissal = action === 'D';
+  const isSuspension = action && action[0] === 'S';
+  const susDays = isSuspension ? action.substring(1) : '';
+  const actionType = isDismissal ? 'Termination of employment'
+    : isSuspension ? 'Suspension without pay'
+    : action === 'R' ? 'Written warning (no pay change)'
+    : 'Admonishment (no pay change)';
+  const payrollEffect = isDismissal ? 'Remove from payroll; process final entitlements'
+    : isSuspension ? `Withhold ${susDays} working day(s) of pay`
+    : 'No change to pay';
+  const route = c.smtRec ? 'HR → SMT → CEO' : (c.referredBy === 'HR' ? 'HR → CEO' : 'Line Manager → HR');
+
+  function printPAF() {
+    const node = document.getElementById('paf-doc');
+    const w = window.open('', '_blank', 'width=820,height=1000');
+    if (!w) { alert('Please allow pop-ups to print the form.'); return; }
+    w.document.write('<html><head><title>Personnel Action Form — ' + c.id + '</title>');
+    w.document.write('<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;line-height:1.5;padding:44px;max-width:720px;margin:auto}h1{font-size:19px;color:#0D2B55}h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#0D2B55;border-bottom:2px solid #C9A84C;padding-bottom:3px;margin-top:20px}table{width:100%;border-collapse:collapse;margin:6px 0}td{padding:6px 8px;border:1px solid #ccc;font-size:13px;vertical-align:top}td.k{background:#f5f3ee;font-weight:bold;width:210px}.sig{margin-top:40px;display:flex;justify-content:space-between}.sig div{border-top:1px solid #333;padding-top:6px;width:30%;font-size:12px}</style></head><body>');
+    w.document.write(node.innerHTML);
+    w.document.write('</body></html>');
+    w.document.close(); w.focus();
+    setTimeout(() => w.print(), 300);
+  }
+
+  const Row = ({ k, v }) => (<tr><td className="k">{k}</td><td>{v}</td></tr>);
+
+  return (
+    <Modal title={`Personnel Action Form — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Close</button><button className="btn btn-navy" onClick={printPAF}>🖨 Print / Save PDF</button></>}>
+      <div id="paf-doc" className="letter">
+        <div className="letter-head">
+          <div><b>FSMPC</b><div className="sub">Personnel Action Form (PAF)</div></div>
+          <div className="sub" style={{ textAlign: 'right' }}>Form: PAF-{c.id}<br />Date: {today}</div>
+        </div>
+        <h1>Personnel Action Form</h1>
+
+        <h2>Employee</h2>
+        <table className="paf-table"><tbody>
+          <Row k="Name" v={e?.name} />
+          <Row k="Employee ID" v={e?.id} />
+          <Row k="Job title" v={e?.title} />
+          <Row k="Department" v={e?.dept} />
+          <Row k="Supervisor" v={e?.sup} />
+        </tbody></table>
+
+        <h2>Disciplinary action</h2>
+        <table className="paf-table"><tbody>
+          <Row k="Case reference" v={c.id} />
+          <Row k="Offence" v={o?.name} />
+          <Row k="Occurrence" v={occLabel(c.occ)} />
+          <Row k="Decision" v={penFull(action)} />
+          <Row k="Action type" v={actionType} />
+          {isSuspension && <Row k="Suspension length" v={`${susDays} working day(s)`} />}
+          <Row k="Effective date" v={today} />
+          <Row k="Approval route" v={route} />
+          {c.outcome && <Row k="Outcome note" v={c.outcome} />}
+        </tbody></table>
+
+        <h2>Payroll instruction</h2>
+        <table className="paf-table"><tbody>
+          <Row k="Payroll effect" v={payrollEffect} />
+          <Row k="Processed by payroll" v="☐  ______________   Date: __________" />
+        </tbody></table>
+
+        <div className="sig">
+          <div>Prepared by (HR)</div>
+          <div>Approved by (CEO)</div>
+          <div>Payroll</div>
+        </div>
+      </div>
+      <p className="hint">Auto-filled from the closed case. This form actions the decision in payroll. Print / Save PDF to file it.</p>
+    </Modal>
+  );
+}
+
+
+/* Personnel Action Form (PAF) — generated on the final decision, printable */
+/* Jury of Peers — activate a peer panel for serious cases */
+function JuryModal({ store, c, onClose }) {
+  const { emps, offs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const pair = o ? rangeForOcc(o, c.occ) : null;
+  const opts = optionsInRange(pair);
+  const j0 = c.jury || {};
+  const [active, setActive] = useState(j0.active || false);
+  const [members, setMembers] = useState(j0.members || []);
+  const [mName, setMName] = useState('');
+  const [mDept, setMDept] = useState('');
+  const [finding, setFinding] = useState(j0.finding || '');
+  const [rec, setRec] = useState(j0.rec || '');
+  const [notes, setNotes] = useState(j0.notes || '');
+
+  function addMember() {
+    if (!mName.trim()) return;
+    setMembers(m => [...m, { name: mName.trim(), dept: mDept.trim() }]);
+    setMName(''); setMDept('');
+  }
+  function removeMember(i) { setMembers(m => m.filter((_, idx) => idx !== i)); }
+
+  function save() {
+    store.saveJury(c.id, { active, members, finding, rec, notes, savedAt: '2026-06-21' });
+    onClose();
+  }
+
+  return (
+    <Modal title={`Jury of Peers — ${c.id}`} onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save jury panel</button></>}>
+      <div className="penalty-box">
+        <div className="penalty-title">{e?.name} — {o?.name}</div>
+        <div className="sub">For a serious case, HR may activate a Jury of Peers — an impartial panel of fellow employees who review the case and give an independent finding and recommendation to inform the decision.</div>
+      </div>
+
+      <label className="serious-check" style={{ marginBottom: 14 }}>
+        <input type="checkbox" checked={active} onChange={ev => setActive(ev.target.checked)} />
+        <span><b>Activate a Jury of Peers</b> for this case</span>
+      </label>
+
+      {active && <>
+        <div className="inv-section">
+          <div className="inv-title">Panel members <span className="sub">(impartial peers)</span></div>
+          {members.length > 0 && (
+            <div className="wit-list">
+              {members.map((m, i) => (
+                <div key={i} className="wit-row">
+                  <div><b>{m.name}</b>{m.dept && <div className="sub">{m.dept}</div>}</div>
+                  <button type="button" className="btn btn-sm btn-danger" onClick={() => removeMember(i)}>Remove</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="wit-add">
+            <input className="input" placeholder="Member name" value={mName}
+              onChange={ev => setMName(ev.target.value)}
+              onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); addMember(); } }} />
+            <input className="input" placeholder="Department / role (optional)" value={mDept}
+              onChange={ev => setMDept(ev.target.value)}
+              onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); addMember(); } }} />
+            <button type="button" className="btn btn-navy" onClick={addMember} disabled={!mName.trim()}>+ Add member</button>
+          </div>
+        </div>
+
+        <div className="inv-section">
+          <div className="inv-title">Panel finding</div>
+          <div className="form-grid">
+            <Field label="Finding">
+              <select className="input" value={finding} onChange={ev => setFinding(ev.target.value)}>
+                <option value="">— Select —</option>
+                <option value="Substantiated">Substantiated</option>
+                <option value="Partly substantiated">Partly substantiated</option>
+                <option value="Not substantiated">Not substantiated</option>
+              </select>
+            </Field>
+            <Field label="Recommended action (within range)">
+              <select className="input" value={rec} onChange={ev => setRec(ev.target.value)}>
+                <option value="">— Select —</option>
+                {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="Panel notes"><textarea className="input" rows={3} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder="The panel's reasoning and any conditions…" /></Field>
+        </div>
+      </>}
+      <p className="hint">The jury's finding and recommendation are advisory — HR, the SMT and the CEO still make the formal decision. The panel is recorded on the case and appears in the audit log.</p>
+    </Modal>
   );
 }
 
@@ -661,6 +1024,8 @@ function InvestigationModal({ store, c, onClose }) {
 function HRAll({ store }) {
   const { cases, emps, offs } = store;
   const [q, setQ] = useState(''); const [sf, setSf] = useState('');
+  const [lettering, setLettering] = useState(null);
+  const [paffing, setPaffing] = useState(null);
   const rows = cases.filter(c => {
     const e = empById(c.empId, emps), o = offByN(c.off, offs);
     if (!e || !o) return false;
@@ -680,10 +1045,11 @@ function HRAll({ store }) {
       </div>
       <Card>
         <table className="table">
-          <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Occ.</th><th>Action</th><th>Status</th></tr></thead>
+          <thead><tr><th>Case</th><th>Employee</th><th>Offence</th><th>Occ.</th><th>Action</th><th>Status</th><th>Documents</th></tr></thead>
           <tbody>
             {rows.map(c => {
               const e = empById(c.empId, emps), o = offByN(c.off, offs);
+              const canLetter = ['Awaiting Response','Awaiting Decision','Closed'].includes(c.status);
               return (
                 <tr key={c.id}>
                   <td className="mono">{c.id}</td>
@@ -692,12 +1058,19 @@ function HRAll({ store }) {
                   <td>{occLabel(c.occ)}</td>
                   <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
                   <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
+                  <td className="row-actions">
+                    {canLetter && <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
+                    {c.status === 'Closed' && <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
+                    {!canLetter && c.status !== 'Closed' && <span className="sub">—</span>}
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </Card>
+      {lettering && <LetterModal store={store} c={lettering} onClose={() => setLettering(null)} />}
+      {paffing && <PAFModal store={store} c={paffing} onClose={() => setPaffing(null)} />}
     </div>
   );
 }
@@ -754,6 +1127,7 @@ function CEOReferrals({ store }) {
               <div><span className="sub">Route:</span> {c.smtRec ? 'HR → SMT → CEO' : 'HR → CEO (direct)'}</div>
               {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
+              {c.jury?.active && <div><span className="sub">Jury of Peers:</span> {c.jury.finding || 'convened'}{c.jury.rec ? ` — recommends ${c.jury.rec}` : ''}{c.jury.members?.length ? ` (${c.jury.members.length} members)` : ''}</div>}
             </div>
             {c.smtRec && (
               <div className="smt-rec">
@@ -1003,6 +1377,7 @@ function SMTQueue({ store }) {
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
               {c.investigation?.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w => w.name).join(', ')}</div>}
               {c.investigation?.files?.length > 0 && <div className="sub">{c.investigation.files.length} evidence file(s)</div>}
+              {c.jury?.active && <div className="sub"><b>Jury of Peers:</b> {c.jury.finding || 'convened'}{c.jury.rec ? ` — recommends ${c.jury.rec}` : ''}</div>}
             </div>
             <div className="notice-actions">
               <span className="pill st-smt">With SMT</span>
@@ -1121,6 +1496,14 @@ function ActionModal({ store, c, action, onClose }) {
           {c.investigation.findings && <div className="sub" style={{marginBottom:4}}>{c.investigation.findings}</div>}
           {c.investigation.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w=>w.name).join(', ')}</div>}
           {c.investigation.files?.length > 0 && <div className="sub">{c.investigation.files.length} evidence file(s) attached</div>}
+        </div>
+      )}
+      {c.jury?.active && (
+        <div className="jury-recap">
+          <div className="inv-title">Jury of Peers</div>
+          {c.jury.finding && <div className="sub"><b>Finding:</b> {c.jury.finding}</div>}
+          {c.jury.rec && <div className="sub"><b>Recommends:</b> {c.jury.rec} — {penFull(c.jury.rec)}</div>}
+          {c.jury.members?.length > 0 && <div className="sub">Panel: {c.jury.members.map(m=>m.name).join(', ')}</div>}
         </div>
       )}
       {needsDecision && (

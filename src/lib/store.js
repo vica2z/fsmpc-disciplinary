@@ -46,7 +46,7 @@ export function useStore() {
     return 'DC-' + (max + 1);
   }, []);
 
-  const submitCase = useCallback((empId, offN, rec, desc, date, asDraft) => {
+  const submitCase = useCallback((empId, offN, rec, desc, date, asDraft, serious) => {
     let newId;
     setCases(prev => {
       const occ = occurrenceFor(+empId, +offN, prev);
@@ -54,9 +54,10 @@ export function useStore() {
       return [{
         id: newId, empId: +empId, off: +offN, occ, rec,
         status: asDraft ? 'Draft' : 'With HR', raised: date || '2026-06-21', desc: desc || '',
+        serious: !!serious,
       }, ...prev];
     });
-    log('lm', newId, asDraft ? 'Saved case as draft' : 'Raised case and submitted to HR');
+    log('lm', newId, (serious ? 'Raised SERIOUS case — HR alerted immediately' : (asDraft ? 'Saved case as draft' : 'Raised case and submitted to HR')));
   }, [nextCaseId, log]);
 
   const updateCase = useCallback((id, patch) =>
@@ -69,6 +70,18 @@ export function useStore() {
   const saveInvestigation = useCallback((id, inv) => {
     updateCase(id, { investigation: inv });
     log('hr', id, 'Recorded investigation notes' + (inv.witnesses && inv.witnesses.length ? ' (' + inv.witnesses.length + ' witness' + (inv.witnesses.length>1?'es':'') + ')' : '') + (inv.files && inv.files.length ? ' + ' + inv.files.length + ' file(s)' : ''));
+  }, [updateCase, log]);
+
+  const saveProperty = useCallback((id, property) => {
+    updateCase(id, { property });
+    const done = (property.items || []).filter(i => i.returned).length;
+    const total = (property.items || []).length;
+    log('lm', id, 'Updated company-property retrieval (' + done + '/' + total + ' returned)' + (property.complete ? ' — complete' : ''));
+  }, [updateCase, log]);
+
+  const saveJury = useCallback((id, jury) => {
+    updateCase(id, { jury });
+    log('hr', id, 'Jury of Peers ' + (jury.active ? 'activated' : 'updated') + (jury.members && jury.members.length ? ' (' + jury.members.length + ' member' + (jury.members.length>1?'s':'') + ')' : '') + (jury.finding ? ' — finding: ' + jury.finding : ''));
   }, [updateCase, log]);
 
   const forwardToCEO = useCallback((id, note) => {
@@ -153,6 +166,16 @@ export function useStore() {
     log('lm', newCaseId, 'Escalated counselling ' + counsId + ' to a formal case');
   }, [couns, nextCaseId, log]);
 
+  const flagSerious = useCallback((id, on) => {
+    updateCase(id, { serious: on });
+    if (on) log('lm', id, 'Flagged as a SERIOUS offence — HR notified immediately (investigation ongoing)');
+  }, [updateCase, log]);
+
+  const acknowledgeSerious = useCallback((id) => {
+    updateCase(id, { seriousAck: true });
+    log('hr', id, 'HR acknowledged the serious-offence alert');
+  }, [updateCase, log]);
+
   const submitToHR = useCallback((id) => { updateCase(id, { status: 'With HR' }); log('lm', id, 'Submitted draft case to HR'); }, [updateCase, log]);
 
   const resetAll = useCallback(() => {
@@ -168,9 +191,10 @@ export function useStore() {
   return {
     cases, emps, offs, logs, couns,
     submitCase, updateCase, deleteCase,
-    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation,
+    issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation, saveJury, saveProperty,
     forwardToCEO, forwardToSMT, smtRecommend, ceoDecideReferral,
     addCounselling, updateCounselling, deleteCounselling, escalateCounselling,
+    flagSerious, acknowledgeSerious,
     addEmp, updateEmp, deleteEmp,
     addOff, updateOff, deleteOff,
     resetAll,

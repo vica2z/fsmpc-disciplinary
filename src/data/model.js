@@ -87,6 +87,12 @@ export function apprStatusClass(s) {
     : 'st-draft';
 }
 
+export const PROPERTY_ITEMS = [
+  'Laptop / computer', 'Mobile phone / SIM', 'Access keys', 'ID / access card',
+  'Uniform / PPE', 'Company vehicle', 'Fuel card', 'Tools / equipment',
+  'Documents / files', 'Other',
+];
+
 export const COUNSEL_OUTCOMES = ['Resolved','Verbal admonishment','Escalated'];
 
 export const EXECUTIVES = [
@@ -126,21 +132,21 @@ export const STEPS = [
   "role": "lm",
   "title": "Raise a disciplinary case",
   "short": "Raise case",
-  "desc": "If the problem continues, the supervisor opens the system and selects the offence. The system automatically checks the employee&rsquo;s history and shows whether this is the 1st, 2nd or 3rd time — and the matching penalty range. The supervisor writes up the facts, recommends an action within that range, and submits it to HR.",
+  "desc": "If the problem continues, the supervisor opens the system and selects the offence. The system automatically checks the employee&rsquo;s history and shows whether this is the 1st, 2nd or 3rd time — and the matching penalty range. The supervisor writes up the facts, recommends an action within that range, and submits it to HR. For a <b>serious offence</b>, the supervisor ticks \u201cSerious offence \u2014 report to HR immediately\u201d when raising it: HR is alerted at once (a red alert on the HR queue) so they can act while the investigation is still ongoing.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">Line Manager · Raise case form</div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Employee</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\">Berny Etse — Help Desk Officer</span></div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Offence</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\">#1 Unexcused tardiness</span></div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin:10px 0\"><div style=\"font-size:11px;color:var(--muted);margin-bottom:4px\">System check (automatic)</div><div style=\"font-size:13px;font-weight:700;color:var(--navy)\">2nd occurrence → penalty range <span class=\"pen pen-R\">R</span> <span class=\"parrow\">&rarr;</span> <span class=\"pen pen-S\">S3</span></div></div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Recommended action</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\"><span class=\"pen pen-R\">R</span> Written warning</span></div><div style=\"margin-top:10px\"><span class=\"st st-hr\">Submitted to HR</span></div>"
  },
  {
   "role": "hr",
   "title": "HR investigates the case",
   "short": "Investigate",
-  "desc": "Before issuing any notice, HR investigates. HR establishes the facts of the incident, discusses it with the line manager and the employee, and may question other staff who were on site as witnesses. Witness names and statements are recorded, and any supporting documents or images (reports, photos, CCTV stills) are uploaded as evidence. Only once the investigation is saved can HR issue the official notice.",
+  "desc": "Before issuing any notice, HR investigates. HR establishes the facts of the incident, discusses it with the line manager and the employee, and may question other staff who were on site as witnesses. Witness names and statements are recorded, and any supporting documents or images (reports, photos, CCTV stills) are uploaded as evidence. Only once the investigation is saved can HR issue the official notice. For a serious case, HR can also activate a <b>Jury of Peers</b> \u2014 an impartial panel of fellow employees who review the case and give an independent finding (substantiated / partly / not substantiated) and a recommended action. The jury\u2019s view is advisory and travels with the case to HR, the SMT and the CEO.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR Manager · Investigation</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">Findings: CCTV confirms the bay was left unattended at 14:05. Discussed with the line manager and the employee.</div><div style=\"font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin:12px 0 6px\">Witnesses</div><div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"st st-hr\">Sireli Sovau</span><span class=\"st st-hr\">Wayne Narruhn</span></div><div style=\"font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin:12px 0 6px\">Evidence</div><div style=\"display:flex;align-items:center;gap:8px\"><span>&#128196;</span><span style=\"font-size:12px;color:var(--navy);font-weight:600\">incident_report.pdf</span><span>&#128247;</span><span style=\"font-size:12px;color:var(--navy);font-weight:600\">cctv_still.png</span></div>"
  },
  {
   "role": "hr",
   "title": "HR reviews and issues official notice",
   "short": "HR review",
-  "desc": "With the investigation complete, HR issues the official notice of the charge and the proposed action, in line with the Table of Charges. The notice goes to both the employee and the line manager, and starts the employee&rsquo;s 5-working-day response window.",
+  "desc": "With the investigation complete, HR issues the official notice of the charge and the proposed action, in line with the Table of Charges. HR can generate a formal disciplinary notice/letter (auto-filled from the case) to print or save as PDF and hand to the employee. The notice goes to both the employee and the line manager, and starts the employee&rsquo;s 5-working-day response window.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR Manager · Official notice</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">Official Notice of Charge issued to the employee. Charge: Offence #1 (unexcused tardiness), 2nd occurrence. Proposed action: Written warning (R).</div><div style=\"display:flex;align-items:center;gap:8px;margin-top:10px\"><span class=\"st st-resp\">Awaiting employee response</span><span class=\"timer\">5 working days to respond</span></div>"
  },
  {
@@ -161,7 +167,7 @@ export const STEPS = [
   "role": "hr",
   "title": "HR records the decision",
   "short": "Decision",
-  "desc": "HR carefully considers the employee&rsquo;s response, including any mitigating factors, and records the final action — which must fall within the Table of Charges range for that offence. The outcome is saved to the employee&rsquo;s personal file.",
+  "desc": "HR carefully considers the employee&rsquo;s response, including any mitigating factors, and records the final action — which must fall within the Table of Charges range for that offence. The outcome is saved to the employee&rsquo;s personal file. Once decided, HR can generate a Personnel Action Form (PAF) — an auto-filled, printable form that actions the decision in payroll (e.g. a suspension without pay, or removal from payroll on dismissal). Where the decision is <b>dismissal</b>, the line manager also completes a company-property retrieval checklist \u2014 laptop, keys, ID card, uniform/PPE, vehicle, fuel card, tools \u2014 ticking each item as it is returned and noting anything outstanding.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR Manager · Decision</div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Charge</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\">#1 Unexcused tardiness (2nd)</span></div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Decision</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\"><span class=\"pen pen-R\">R</span> Written warning</span></div><div style=\"display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)\"><span style=\"font-size:12px;color:var(--muted)\">Recorded in</span><span style=\"font-size:13px;font-weight:600;color:var(--navy)\">Employee personal file</span></div><div style=\"margin-top:10px\"><span class=\"st st-closed\">Case closed — upheld</span></div>"
  },
  {
@@ -307,6 +313,9 @@ export const PANEL_GUIDE = {
       'Cases needing HR action, in order: review & issue the official notice → record the employee response → record the decision.',
       'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
       'For serious cases, after investigation you can Forward to CEO (CEO decides) or Forward to SMT (SMT recommends, then CEO decides) — in both, the CEO takes the final decision and closes the case.',
+      'Use the Letter button to generate a formal disciplinary notice, and (once a case is closed, in All Cases) the Personnel Action Form for payroll — both auto-filled and printable.',
+      'On a closed case, use the PAF button to generate a Personnel Action Form that actions the decision in payroll.',
+      'For a serious case, you can activate a Jury of Peers (impartial panel) to give an independent finding and recommendation — advisory to the final decision.',
     ],
   },
   'staff-notices': {

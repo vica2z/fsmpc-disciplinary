@@ -95,6 +95,13 @@ export const PROPERTY_ITEMS = [
 
 export const COUNSEL_OUTCOMES = ['Resolved','Verbal admonishment','Escalated'];
 
+export const SMT_MEMBERS = [
+  { id: 'smt-1', name: 'Isikeli Rabici', title: 'GM Operations' },
+  { id: 'smt-2', name: 'Ana Vualiku', title: 'GM Corporate Services' },
+  { id: 'smt-3', name: 'Daniel Whippy', title: 'GM Finance' },
+  { id: 'smt-4', name: 'Litia Mara', title: 'GM People & Safety' },
+];
+
 export const EXECUTIVES = [
   { id: 'exec-ops', name: 'Savenaca Tamani', title: 'Executive — Operations Group', depts: ['Operations','Terminals','Safety'] },
   { id: 'exec-corp', name: 'Johnny Adolph', title: 'Executive — Corporate Services', depts: ['Finance','Supply Chain','Admin'] },
@@ -125,7 +132,7 @@ export const STEPS = [
   "role": "lm",
   "title": "Counsel the employee first",
   "short": "Counsel",
-  "desc": "When a problem first happens, the supervisor (line manager) does NOT jump to punishment. The first step is a private chat to understand and fix the issue. The supervisor notes this in their own records. A formal case only follows if counselling does not resolve the problem.",
+  "desc": "When a problem first happens, the supervisor (line manager) does NOT jump to punishment. The first step is a private chat to understand and fix the issue. The supervisor notes this in their own records. The supervisor records the counselling in the system (issue, discussion and outcome) so it is kept on the employee\u2019s file, not just in personal notes. If the <b>same employee reoffends later</b>, that earlier counselling is automatically flagged when a new case is raised \u2014 and the supervisor can escalate the counselling straight into a formal case, with the notes carried forward. A formal case only follows if counselling does not resolve the problem.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">Line Manager · Counselling note</div><div style=\"background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6\">Spoke privately with the employee about repeated late arrivals. Agreed on a plan to improve punctuality. No formal action at this stage.</div><div style=\"font-size:11px;color:var(--muted);margin-top:10px\">&#128161; Discipline is always a last resort. This informal step comes first.</div>"
  },
  {
@@ -160,7 +167,7 @@ export const STEPS = [
   "role": "smt",
   "title": "HR may forward to the CEO or SMT",
   "short": "Forward",
-  "desc": "After the investigation and all discussion with the line manager and employee, HR can forward the case up instead of deciding it at HR level. <b>Case 1 &mdash; HR &rarr; CEO:</b> HR forwards the case directly to the CEO, and the CEO takes the final decision and closes the case. <b>Case 2 &mdash; HR &rarr; SMT &rarr; CEO:</b> HR forwards the case to the Senior Management Team, who recommend an action (within the offence range) with their rationale; the case then goes to the CEO, who takes the final decision and closes it. In both cases the CEO is the final decision-maker.",
+  "desc": "After the investigation and all discussion with the line manager and employee, HR can forward the case up instead of deciding it at HR level. <b>Case 1 &mdash; HR &rarr; CEO:</b> HR forwards the case directly to the CEO, and the CEO takes the final decision and closes the case. <b>Case 2 &mdash; HR &rarr; SMT &rarr; CEO:</b> HR forwards the case to the Senior Management Team, who recommend an action (within the offence range) with their rationale; the case then goes to the CEO, who takes the final decision and closes it. The SMT can have more than one member, so when forwarding to SMT, HR selects <b>which SMT member</b> to send the case to from a dropdown \u2014 that member is shown on the case and carried through to the CEO. In both cases the CEO is the final decision-maker.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR &rarr; SMT &rarr; CEO</div><div style=\"background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:13px 15px;margin-bottom:10px\"><div style=\"font-size:11px;color:#7C2D12;font-weight:800;text-transform:uppercase;margin-bottom:5px\">SMT recommendation</div><div style=\"font-size:13px;font-weight:700;color:var(--navy)\"><span class=\"pen pen-S\">S10</span> 10-day suspension</div><div style=\"font-size:12px;color:var(--muted);margin-top:3px\">Given the severity, the SMT recommends this action to the CEO.</div></div><div style=\"display:flex;align-items:center;gap:8px\"><span class=\"st st-ceo\">With CEO</span><span style=\"font-size:11px;color:var(--muted)\">CEO makes the final decision</span></div>"
  },
  {
@@ -223,7 +230,7 @@ export const PANEL_GUIDE = {
     title: 'How SMT Referrals works',
     role: 'smt',
     points: [
-      'Cases HR has forwarded to the Senior Management Team for a recommendation before the CEO decides.',
+      'Cases HR has forwarded to the Senior Management Team for a recommendation before the CEO decides — each shows which SMT member HR assigned it to.',
       'Review the case, the investigation and any evidence, then recommend an action to the CEO — within the offence\u2019s penalty range — with your rationale.',
       'Once recommended, the case moves to the CEO with your recommendation attached. The CEO makes the final decision.',
     ],
@@ -243,6 +250,7 @@ export const PANEL_GUIDE = {
       'The first, informal step — before any formal case. When a performance or conduct problem first appears, counsel the employee and log it here.',
       'Record what the issue was, what was discussed, and the outcome: Resolved (no further action), Verbal admonishment (oral warning kept on file), or Escalate to a formal case.',
       'Escalating carries the counselling notes into the new case. HR, Executives and the CEO can see this log — so issues managed early are visible, not just formal cases.',
+      'The record is kept on the employee’s file: if the same employee reoffends, the earlier counselling is flagged when you raise a new case, supporting escalation.',
     ],
   },
   'counsel-log': {
@@ -322,6 +330,7 @@ export const PANEL_GUIDE = {
       'Cases needing HR action, in order: review & issue the official notice → record the employee response → record the decision.',
       'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
       'For serious cases, after investigation you can Forward to CEO (CEO decides) or Forward to SMT (SMT recommends, then CEO decides) — in both, the CEO takes the final decision and closes the case.',
+      'The SMT has several members — when forwarding to SMT, pick which member should handle the case from the dropdown.',
       'Use the Letter button to generate a formal disciplinary notice, and (once a case is closed, in All Cases) the Personnel Action Form for payroll — both auto-filled and printable.',
       'On a closed case, use the PAF button to generate a Personnel Action Form that actions the decision in payroll.',
       'For a serious case, you can activate a Jury of Peers (impartial panel) to give an independent finding and recommendation — advisory to the final decision.',

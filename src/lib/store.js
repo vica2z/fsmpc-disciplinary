@@ -89,9 +89,9 @@ export function useStore() {
     log('hr', id, 'Forwarded case directly to the CEO');
   }, [updateCase, log]);
 
-  const forwardToSMT = useCallback((id, note) => {
-    updateCase(id, { status: 'With SMT', referredBy: 'HR', hrNote: note || '' });
-    log('hr', id, 'Forwarded case to the SMT for recommendation');
+  const forwardToSMT = useCallback((id, note, smtMember) => {
+    updateCase(id, { status: 'With SMT', referredBy: 'HR', hrNote: note || '', smtMember: smtMember || '' });
+    log('hr', id, 'Forwarded case to SMT' + (smtMember ? ' member ' + smtMember : '') + ' for recommendation');
   }, [updateCase, log]);
 
   const smtRecommend = useCallback((id, action, rationale) => {

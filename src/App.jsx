@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, COUNSEL_OUTCOMES, PROPERTY_ITEMS, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
+import { OFFENCES, CATS, CAT_ICON, EMP, EXECUTIVES, SMT_MEMBERS, APPRAISAL_STATUSES, appraisalStatus, apprStatusClass, COUNSEL_OUTCOMES, PROPERTY_ITEMS, PEN_ORDER, ROLES, STEPS, PANEL_GUIDE, ROLE_NAV, ROLE_ORDER } from './data/model';
 import {
   offByN, occurrenceFor, occLabel, rangeForOcc,
   penClass, penFull, optionsInRange, rangeChips, empById,
@@ -511,6 +511,11 @@ function LMRaise({ store, setView }) {
     return { e, o, occ, pair, opts: optionsInRange(pair), prior: occ - 1 };
   }, [empId, offN, cases, emps, offs]);
 
+  const priorCounselling = useMemo(() => {
+    if (!empId) return [];
+    return store.couns.filter(c => c.empId === +empId);
+  }, [empId, store.couns]);
+
   function submit(asDraft) {
     if (!empId || !offN) { alert('Select an employee and an offence.'); return; }
     if (!asDraft && !rec) { alert('Select a recommended action within the range.'); return; }
@@ -538,6 +543,18 @@ function LMRaise({ store, setView }) {
             </select>
           </Field>
         </div>
+        {priorCounselling.length > 0 && (
+          <div className="counsel-alert">
+            <div className="inv-title">⚠ Prior counselling on file for {empById(+empId, emps)?.name}</div>
+            <div className="sub" style={{ marginBottom: 6 }}>This employee has been counselled before. If this is a repeat problem, raising a formal case is appropriate — the earlier counselling supports it.</div>
+            {priorCounselling.map(c => (
+              <div key={c.id} className="counsel-alert-row">
+                <span className="mono">{c.id}</span> · {c.date} · {c.topic}
+                <span className={'pill ' + counselOutcomeClass(c.outcome)} style={{ marginLeft: 6 }}>{c.outcome}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {penalty && (
           <div className="penalty-box">
             <div className="sub">System check (automatic)</div>
@@ -905,9 +922,12 @@ function ForwardModal({ store, c, to, onClose }) {
   const { emps, offs } = store;
   const e = empById(c.empId, emps), o = offByN(c.off, offs);
   const [note, setNote] = useState('');
+  const [member, setMember] = useState('');
   function go() {
-    if (to === 'SMT') store.forwardToSMT(c.id, note);
-    else store.forwardToCEO(c.id, note);
+    if (to === 'SMT') {
+      if (!member) { alert('Select which SMT member to forward to.'); return; }
+      store.forwardToSMT(c.id, note, member);
+    } else store.forwardToCEO(c.id, note);
     onClose();
   }
   return (
@@ -919,6 +939,14 @@ function ForwardModal({ store, c, to, onClose }) {
           ? 'The Senior Management Team will review this case and recommend an action to the CEO. It then goes to the CEO with their recommendation.'
           : 'This case goes directly to the CEO for a final decision, skipping the notice/response stage.'}</div>
       </div>
+      {to === 'SMT' && (
+        <Field label="Forward to which SMT member">
+          <select className="input" value={member} onChange={ev => setMember(ev.target.value)}>
+            <option value="">— Select SMT member —</option>
+            {SMT_MEMBERS.map(m => <option key={m.id} value={m.name}>{m.name} — {m.title}</option>)}
+          </select>
+        </Field>
+      )}
       <Field label={`Note for the ${to === 'SMT' ? 'SMT' : 'CEO'} (optional)`}><textarea className="input" rows={3} value={note} onChange={ev => setNote(ev.target.value)} placeholder="Why this is being escalated…" /></Field>
     </Modal>
   );
@@ -1125,7 +1153,7 @@ function CEOReferrals({ store }) {
           <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
             <div className="notice-body">
               <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
-              <div><span className="sub">Route:</span> {c.smtRec ? 'HR → SMT → CEO' : 'HR → CEO (direct)'}</div>
+              <div><span className="sub">Route:</span> {c.smtRec ? `HR → SMT → CEO${c.smtMember ? ` (${c.smtMember})` : ''}` : 'HR → CEO (direct)'}</div>
               {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
               {c.jury?.active && <div><span className="sub">Jury of Peers:</span> {c.jury.finding || 'convened'}{c.jury.rec ? ` — recommends ${c.jury.rec}` : ''}{c.jury.members?.length ? ` (${c.jury.members.length} members)` : ''}</div>}
@@ -1433,6 +1461,7 @@ function SMTQueue({ store }) {
           <Card key={c.id} title={`${c.id} · ${e?.name}`} sub={o?.name}>
             <div className="notice-body">
               <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+              {c.smtMember && <div><span className="sub">Assigned to:</span> {c.smtMember}</div>}
               {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
               {c.investigation?.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w => w.name).join(', ')}</div>}

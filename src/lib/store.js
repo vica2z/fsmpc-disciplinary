@@ -84,14 +84,14 @@ export function useStore() {
     log('hr', id, 'Jury of Peers ' + (jury.active ? 'activated' : 'updated') + (jury.members && jury.members.length ? ' (' + jury.members.length + ' member' + (jury.members.length>1?'s':'') + ')' : '') + (jury.finding ? ' — finding: ' + jury.finding : ''));
   }, [updateCase, log]);
 
-  const forwardToCEO = useCallback((id, note) => {
-    updateCase(id, { status: 'With CEO', referredBy: 'HR', hrNote: note || '' });
-    log('hr', id, 'Forwarded case directly to the CEO');
+  const forwardToCEO = useCallback((id, note, hrRec) => {
+    updateCase(id, { status: 'With CEO', referredBy: 'HR', hrNote: note || '', hrRec: hrRec || '' });
+    log('hr', id, 'Forwarded case directly to the CEO' + (hrRec ? ' — HR recommends ' + hrRec : ''));
   }, [updateCase, log]);
 
-  const forwardToSMT = useCallback((id, note, smtMember) => {
-    updateCase(id, { status: 'With SMT', referredBy: 'HR', hrNote: note || '', smtMember: smtMember || '' });
-    log('hr', id, 'Forwarded case to SMT' + (smtMember ? ' member ' + smtMember : '') + ' for recommendation');
+  const forwardToSMT = useCallback((id, note, smtMember, hrRec) => {
+    updateCase(id, { status: 'With SMT', referredBy: 'HR', hrNote: note || '', smtMember: smtMember || '', hrRec: hrRec || '' });
+    log('hr', id, 'Forwarded case to SMT' + (smtMember ? ' member ' + smtMember : '') + ' for recommendation' + (hrRec ? ' — HR recommends ' + hrRec : ''));
   }, [updateCase, log]);
 
   const smtRecommend = useCallback((id, action, rationale) => {

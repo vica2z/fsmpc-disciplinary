@@ -921,13 +921,18 @@ function JuryModal({ store, c, onClose }) {
 function ForwardModal({ store, c, to, onClose }) {
   const { emps, offs } = store;
   const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const pair = o ? rangeForOcc(o, c.occ) : null;
+  const opts = optionsInRange(pair);
   const [note, setNote] = useState('');
   const [member, setMember] = useState('');
+  const [rec, setRec] = useState('');
   function go() {
+    if (!rec) { alert('Select HR\u2019s recommended action — a recommendation to the CEO is required.'); return; }
+    if (!note.trim()) { alert('Enter the reason / rationale for your recommendation.'); return; }
     if (to === 'SMT') {
       if (!member) { alert('Select which SMT member to forward to.'); return; }
-      store.forwardToSMT(c.id, note, member);
-    } else store.forwardToCEO(c.id, note);
+      store.forwardToSMT(c.id, note, member, rec);
+    } else store.forwardToCEO(c.id, note, rec);
     onClose();
   }
   return (
@@ -935,19 +940,29 @@ function ForwardModal({ store, c, to, onClose }) {
       foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Forward to {to}</button></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
-        <div className="sub">{to === 'SMT'
+        <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+        <div className="sub" style={{ marginTop: 6 }}>{to === 'SMT'
           ? 'The Senior Management Team will review this case and recommend an action to the CEO. It then goes to the CEO with their recommendation.'
           : 'This case goes directly to the CEO for a final decision, skipping the notice/response stage.'}</div>
       </div>
       {to === 'SMT' && (
-        <Field label="Forward to which SMT member">
+        <Field label="Forward to which SMT member (required)">
           <select className="input" value={member} onChange={ev => setMember(ev.target.value)}>
             <option value="">— Select SMT member —</option>
             {SMT_MEMBERS.map(m => <option key={m.id} value={m.name}>{m.name} — {m.title}</option>)}
           </select>
         </Field>
       )}
-      <Field label={`Note for the ${to === 'SMT' ? 'SMT' : 'CEO'} (optional)`}><textarea className="input" rows={3} value={note} onChange={ev => setNote(ev.target.value)} placeholder="Why this is being escalated…" /></Field>
+      <Field label="HR recommended action (required)">
+        <select className="input" value={rec} onChange={ev => setRec(ev.target.value)}>
+          <option value="">— Select recommended action —</option>
+          {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
+        </select>
+      </Field>
+      <Field label="Reason / rationale for the recommendation (required)">
+        <textarea className="input" rows={3} value={note} onChange={ev => setNote(ev.target.value)} placeholder="Why HR recommends this action…" />
+      </Field>
+      <p className="hint">HR must give a recommendation before a case can be escalated. It travels with the case and is shown to the {to === 'SMT' ? 'SMT and the CEO' : 'CEO'}.</p>
     </Modal>
   );
 }
@@ -1138,10 +1153,130 @@ function StaffNotices({ store }) {
 
 /* ═══════════ CEO ═══════════ */
 
+
+/* ═══════ FULL CASE HISTORY — reusable by CEO and SMT ═══════ */
+function CaseHistoryModal({ store, c, onClose }) {
+  const { emps, offs, couns, logs } = store;
+  const e = empById(c.empId, emps), o = offByN(c.off, offs);
+  const pair = o ? rangeForOcc(o, c.occ) : null;
+  const inv = c.investigation || {};
+  const prior = (couns || []).filter(x => x.empId === c.empId);
+  const trail = (logs || []).filter(l => l.caseId === c.id).slice().reverse();
+  const isImg = t => t && t.startsWith('image/');
+
+  const Sec = ({ n, title, children }) => (
+    <div className="hist-sec">
+      <div className="hist-head"><span className="hist-num">{n}</span><b>{title}</b></div>
+      <div className="hist-body">{children}</div>
+    </div>
+  );
+  const Row = ({ k, children }) => (
+    <div className="hist-row"><span className="hist-k">{k}</span><span className="hist-v">{children}</span></div>
+  );
+
+  return (
+    <Modal title={`Full case history — ${c.id}`} onClose={onClose}
+      foot={<button className="btn btn-navy" onClick={onClose}>Close</button>}>
+
+      <Sec n="1" title="Employee & charge">
+        <Row k="Employee">{e?.name} — {e?.title}, {e?.dept}</Row>
+        <Row k="Supervisor">{e?.sup}</Row>
+        <Row k="Offence">{o?.n}. {o?.name}</Row>
+        <Row k="Category">{o?.cat}</Row>
+        <Row k="Occurrence">{occLabel(c.occ)}</Row>
+        <Row k="Penalty range"><span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></Row>
+        {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
+      </Sec>
+
+      <Sec n="2" title="Counselling before the case">
+        {prior.length ? prior.map(x => (
+          <div key={x.id} className="hist-item">
+            <b className="mono">{x.id}</b> · {x.date} — {x.topic}
+            {x.discussed && <div className="sub">Discussed: {x.discussed}</div>}
+            <div className="sub">Outcome: {x.outcome}{x.escalatedTo ? ` → ${x.escalatedTo}` : ''}{x.by ? ` · by ${x.by}` : ''}</div>
+          </div>
+        )) : <div className="sub">No counselling recorded for this employee.</div>}
+      </Sec>
+
+      <Sec n="3" title="Case raised by the line manager">
+        <Row k="Date raised">{c.raised || '—'}</Row>
+        <Row k="LM recommended">{c.rec ? <><span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</> : '—'}</Row>
+        {c.serious && <div className="penalty-note">⚠ Flagged as a serious offence — reported to HR immediately.</div>}
+        {c.desc && <div className="hist-quote">{c.desc}</div>}
+      </Sec>
+
+      <Sec n="4" title="HR investigation">
+        {inv.findings || inv.lmDiscuss || inv.staffDiscuss || inv.witnesses?.length || inv.files?.length ? <>
+          {inv.findings && <><div className="hist-k">Findings</div><div className="hist-quote">{inv.findings}</div></>}
+          {inv.lmDiscuss && <><div className="hist-k">Discussion with line manager</div><div className="hist-quote">{inv.lmDiscuss}</div></>}
+          {inv.staffDiscuss && <><div className="hist-k">Discussion with employee</div><div className="hist-quote">{inv.staffDiscuss}</div></>}
+        </> : <div className="sub">No investigation recorded yet.</div>}
+      </Sec>
+
+      <Sec n="5" title={`Witness statements${inv.witnesses?.length ? ` (${inv.witnesses.length})` : ''}`}>
+        {inv.witnesses?.length ? inv.witnesses.map((w, i) => (
+          <div key={i} className="hist-item"><b>{w.name}</b>{w.note && <div className="hist-quote">{w.note}</div>}</div>
+        )) : <div className="sub">No witnesses recorded.</div>}
+      </Sec>
+
+      <Sec n="6" title={`Evidence${inv.files?.length ? ` (${inv.files.length})` : ''}`}>
+        {inv.files?.length ? (
+          <div className="file-list">
+            {inv.files.map((f, i) => (
+              <div key={i} className="file-chip">
+                {isImg(f.type) ? <img src={f.data} alt={f.name} className="file-thumb" /> : <span className="file-ico">📄</span>}
+                <div className="file-meta"><a href={f.data} download={f.name} className="file-name">{f.name}</a><div className="sub">{(f.size/1024).toFixed(0)} KB</div></div>
+              </div>
+            ))}
+          </div>
+        ) : <div className="sub">No documents or images uploaded.</div>}
+      </Sec>
+
+      {c.jury?.active && (
+        <Sec n="7" title="Jury of Peers">
+          <Row k="Finding">{c.jury.finding || '—'}</Row>
+          {c.jury.rec && <Row k="Recommends"><span className={'chip ' + penClass(c.jury.rec)}>{c.jury.rec}</span> {penFull(c.jury.rec)}</Row>}
+          {c.jury.members?.length > 0 && <Row k="Panel">{c.jury.members.map(m => m.name + (m.dept ? ` (${m.dept})` : '')).join(', ')}</Row>}
+          {c.jury.notes && <div className="hist-quote">{c.jury.notes}</div>}
+        </Sec>
+      )}
+
+      <Sec n={c.jury?.active ? '8' : '7'} title="Escalation & recommendations">
+        <Row k="Route">{c.smtRec ? `HR → SMT → CEO${c.smtMember ? ` (${c.smtMember})` : ''}` : c.referredBy === 'HR' ? 'HR → CEO (direct)' : 'Handled at HR level'}</Row>
+        {c.hrNote && <><div className="hist-k">HR note / recommendation</div><div className="hist-quote">{c.hrNote}</div></>}
+        {c.hrRec && <Row k="HR recommends"><span className={'chip ' + penClass(c.hrRec)}>{c.hrRec}</span> {penFull(c.hrRec)}</Row>}
+        {c.smtRec && <>
+          <Row k="SMT recommends"><span className={'chip ' + penClass(c.smtRec)}>{c.smtRec}</span> {penFull(c.smtRec)}</Row>
+          {c.smtRationale && <div className="hist-quote">{c.smtRationale}</div>}
+        </>}
+        {!c.hrNote && !c.smtRec && !c.hrRec && <div className="sub">No escalation recorded.</div>}
+      </Sec>
+
+      <Sec n={c.jury?.active ? '9' : '8'} title="Employee response & decision">
+        {c.response ? <><div className="hist-k">Employee response</div><div className="hist-quote">{c.response}</div></> : <div className="sub">No response recorded.</div>}
+        {c.decision && <Row k="Final decision"><span className={'chip ' + penClass(c.decision)}>{c.decision}</span> {penFull(c.decision)}{c.outcome ? ` — ${c.outcome}` : ''}</Row>}
+        {c.appeal && <><div className="hist-k">Appeal grounds</div><div className="hist-quote">{c.appeal}</div></>}
+        <Row k="Current status"><span className={'pill ' + statusClass(c.status)}>{c.status}</span></Row>
+      </Sec>
+
+      {trail.length > 0 && (
+        <Sec n={c.jury?.active ? '10' : '9'} title="Audit trail">
+          {trail.map(l => (
+            <div key={l.id} className="hist-item sub">
+              {new Date(l.ts).toLocaleString('en-GB')} · <b>{(ROLES[l.role]||{}).name || l.role}</b> — {l.action}
+            </div>
+          ))}
+        </Sec>
+      )}
+    </Modal>
+  );
+}
+
 function CEOReferrals({ store }) {
   const { cases, emps, offs } = store;
   const refs = cases.filter(c => c.status === 'With CEO');
   const [deciding, setDeciding] = useState(null);
+  const [history, setHistory] = useState(null);
   return (
     <div className="page">
       <PageHead title="Referrals — CEO Decision" sub="Cases forwarded by HR, or recommended by the SMT" />
@@ -1154,7 +1289,8 @@ function CEOReferrals({ store }) {
             <div className="notice-body">
               <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
               <div><span className="sub">Route:</span> {c.smtRec ? `HR → SMT → CEO${c.smtMember ? ` (${c.smtMember})` : ''}` : 'HR → CEO (direct)'}</div>
-              {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
+              {c.hrRec && <div><span className="sub">HR recommends:</span> <span className={'chip ' + penClass(c.hrRec)}>{c.hrRec}</span> {penFull(c.hrRec)}</div>}
+              {c.hrNote && <div className="notice-quote">HR rationale: “{c.hrNote}”</div>}
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
               {c.jury?.active && <div><span className="sub">Jury of Peers:</span> {c.jury.finding || 'convened'}{c.jury.rec ? ` — recommends ${c.jury.rec}` : ''}{c.jury.members?.length ? ` (${c.jury.members.length} members)` : ''}</div>}
             </div>
@@ -1167,12 +1303,14 @@ function CEOReferrals({ store }) {
             )}
             <div className="notice-actions">
               <span className="pill st-ceo">With CEO</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</button>
               <button className="btn btn-sm btn-navy" onClick={() => setDeciding(c)}>Make final decision</button>
             </div>
           </Card>
         );
       }) : <Empty>No cases awaiting a CEO decision.</Empty>}
       {deciding && <CEODecisionModal store={store} c={deciding} onClose={() => setDeciding(null)} />}
+      {history && <CaseHistoryModal store={store} c={history} onClose={() => setHistory(null)} />}
     </div>
   );
 }
@@ -1196,6 +1334,7 @@ function CEODecisionModal({ store, c, onClose }) {
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
       </div>
+      {c.hrRec && <div className="inv-recap"><div className="inv-title">HR recommended</div><div><span className={'chip ' + penClass(c.hrRec)}>{c.hrRec}</span> {penFull(c.hrRec)}</div>{c.hrNote && <div className="sub" style={{marginTop:4}}>{c.hrNote}</div>}</div>}
       {c.smtRec && <div className="smt-rec"><div className="inv-title">SMT recommended</div><div><span className={'chip ' + penClass(c.smtRec)}>{c.smtRec}</span> {penFull(c.smtRec)}</div>{c.smtRationale && <div className="sub" style={{marginTop:4}}>{c.smtRationale}</div>}</div>}
       <Field label="Final action (within range)">
         <select className="input" value={decision} onChange={ev => setDecision(ev.target.value)}>
@@ -1450,6 +1589,7 @@ function SMTQueue({ store }) {
   const { cases, emps, offs } = store;
   const queue = cases.filter(c => c.status === 'With SMT');
   const [reccing, setReccing] = useState(null);
+  const [history, setHistory] = useState(null);
   return (
     <div className="page">
       <PageHead title="SMT Referrals" sub="Cases forwarded by HR for a recommendation to the CEO" />
@@ -1462,7 +1602,8 @@ function SMTQueue({ store }) {
             <div className="notice-body">
               <div><span className="sub">Occurrence:</span> {occLabel(c.occ)} — range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
               {c.smtMember && <div><span className="sub">Assigned to:</span> {c.smtMember}</div>}
-              {c.hrNote && <div className="notice-quote">HR note: “{c.hrNote}”</div>}
+              {c.hrRec && <div><span className="sub">HR recommends:</span> <span className={'chip ' + penClass(c.hrRec)}>{c.hrRec}</span> {penFull(c.hrRec)}</div>}
+              {c.hrNote && <div className="notice-quote">HR rationale: “{c.hrNote}”</div>}
               {c.investigation?.findings && <div><span className="sub">Investigation:</span> {c.investigation.findings}</div>}
               {c.investigation?.witnesses?.length > 0 && <div className="sub">Witnesses: {c.investigation.witnesses.map(w => w.name).join(', ')}</div>}
               {c.investigation?.files?.length > 0 && <div className="sub">{c.investigation.files.length} evidence file(s)</div>}
@@ -1470,12 +1611,14 @@ function SMTQueue({ store }) {
             </div>
             <div className="notice-actions">
               <span className="pill st-smt">With SMT</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</button>
               <button className="btn btn-sm btn-navy" onClick={() => setReccing(c)}>Recommend to CEO</button>
             </div>
           </Card>
         );
       }) : <Empty>No cases referred to the SMT.</Empty>}
       {reccing && <SMTRecommendModal store={store} c={reccing} onClose={() => setReccing(null)} />}
+      {history && <CaseHistoryModal store={store} c={history} onClose={() => setHistory(null)} />}
     </div>
   );
 }
@@ -1485,10 +1628,11 @@ function SMTRecommendModal({ store, c, onClose }) {
   const o = offByN(c.off, offs), e = empById(c.empId, emps);
   const pair = o ? rangeForOcc(o, c.occ) : null;
   const opts = optionsInRange(pair);
-  const [action, setAction] = useState(opts[0] || '');
+  const [action, setAction] = useState('');
   const [rationale, setRationale] = useState('');
   function go() {
-    if (!action) { alert('Select a recommended action.'); return; }
+    if (!action) { alert('Select a recommended action — a recommendation to the CEO is required.'); return; }
+    if (!rationale.trim()) { alert('Enter the rationale for the SMT recommendation.'); return; }
     store.smtRecommend(c.id, action, rationale);
     onClose();
   }
@@ -1500,13 +1644,21 @@ function SMTRecommendModal({ store, c, onClose }) {
         <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
         {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
       </div>
-      <Field label="Recommended action to the CEO">
+      {c.hrRec && (
+        <div className="inv-recap">
+          <div className="inv-title">HR recommended</div>
+          <div><span className={'chip ' + penClass(c.hrRec)}>{c.hrRec}</span> {penFull(c.hrRec)}</div>
+          {c.hrNote && <div className="sub" style={{ marginTop: 4 }}>{c.hrNote}</div>}
+        </div>
+      )}
+      <Field label="Recommended action to the CEO (required)">
         <select className="input" value={action} onChange={ev => setAction(ev.target.value)}>
+          <option value="">— Select recommended action —</option>
           {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}
         </select>
       </Field>
-      <Field label="Rationale"><textarea className="input" rows={3} value={rationale} onChange={ev => setRationale(ev.target.value)} placeholder="Why the SMT recommends this action…" /></Field>
-      <p className="hint">This is a recommendation only — the CEO makes the final decision.</p>
+      <Field label="Rationale (required)"><textarea className="input" rows={3} value={rationale} onChange={ev => setRationale(ev.target.value)} placeholder="Why the SMT recommends this action…" /></Field>
+      <p className="hint">A recommendation and rationale are required. This is advisory only — the CEO makes the final decision.</p>
     </Modal>
   );
 }

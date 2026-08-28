@@ -167,7 +167,7 @@ export const STEPS = [
   "role": "smt",
   "title": "HR may forward to the CEO or SMT",
   "short": "Forward",
-  "desc": "After the investigation and all discussion with the line manager and employee, HR can forward the case up instead of deciding it at HR level. <b>Case 1 &mdash; HR &rarr; CEO:</b> HR forwards the case directly to the CEO, and the CEO takes the final decision and closes the case. <b>Case 2 &mdash; HR &rarr; SMT &rarr; CEO:</b> HR forwards the case to the Senior Management Team, who recommend an action (within the offence range) with their rationale; the case then goes to the CEO, who takes the final decision and closes it. The SMT can have more than one member, so when forwarding to SMT, HR selects <b>which SMT member</b> to send the case to from a dropdown \u2014 that member is shown on the case and carried through to the CEO. In both cases the CEO is the final decision-maker.",
+  "desc": "After the investigation and all discussion with the line manager and employee, HR can forward the case up instead of deciding it at HR level. <b>Case 1 &mdash; HR &rarr; CEO:</b> HR forwards the case directly to the CEO, and the CEO takes the final decision and closes the case. <b>Case 2 &mdash; HR &rarr; SMT &rarr; CEO:</b> HR forwards the case to the Senior Management Team, who recommend an action (within the offence range) with their rationale; the case then goes to the CEO, who takes the final decision and closes it. The SMT can have more than one member, so when forwarding to SMT, HR selects <b>which SMT member</b> to send the case to from a dropdown \u2014 that member is shown on the case and carried through to the CEO. Both the SMT and the CEO can open <b>“View full case history”</b> on a case \u2014 showing prior counselling, the line manager\u2019s statement, the HR investigation, witness statements, uploaded evidence, any Jury of Peers finding, all recommendations and the audit trail \u2014 so they decide with the complete picture. The CEO also has the Table of Charges in their menu, listing every offence and its penalties. Whenever HR forwards a case, HR <b>must</b> record a recommended action (within the offence range) and the reason for it \u2014 this is mandatory, and the recommendation travels with the case so the SMT and the CEO can see what HR advised. Where the case goes to the SMT, the SMT <b>must</b> record a recommended action and rationale before it moves on \u2014 like HR\u2019s, this recommendation is mandatory and is shown to the CEO alongside HR\u2019s. In both cases the CEO is the final decision-maker.",
   "mock": "<div style=\"font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px\">HR &rarr; SMT &rarr; CEO</div><div style=\"background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:13px 15px;margin-bottom:10px\"><div style=\"font-size:11px;color:#7C2D12;font-weight:800;text-transform:uppercase;margin-bottom:5px\">SMT recommendation</div><div style=\"font-size:13px;font-weight:700;color:var(--navy)\"><span class=\"pen pen-S\">S10</span> 10-day suspension</div><div style=\"font-size:12px;color:var(--muted);margin-top:3px\">Given the severity, the SMT recommends this action to the CEO.</div></div><div style=\"display:flex;align-items:center;gap:8px\"><span class=\"st st-ceo\">With CEO</span><span style=\"font-size:11px;color:var(--muted)\">CEO makes the final decision</span></div>"
  },
  {
@@ -223,6 +223,8 @@ export const PANEL_GUIDE = {
     points: [
       'Cases HR forwarded directly to you, or that came up through the SMT with a recommendation.',
       'Where the SMT has recommended an action, it is shown here — you may follow it or decide differently, within the offence range.',
+      'Click “View full case history” to see everything on the case: prior counselling, the LM’s statement, the HR investigation, witness statements, uploaded evidence, any Jury of Peers finding, recommendations and the audit trail.',
+      'The Table of Charges is in your menu — it lists every offence and its penalties (verbal warning, written warning, suspension or dismissal) by occurrence.',
       'Your decision is final and closes the case.',
     ],
   },
@@ -231,6 +233,8 @@ export const PANEL_GUIDE = {
     role: 'smt',
     points: [
       'Cases HR has forwarded to the Senior Management Team for a recommendation before the CEO decides — each shows which SMT member HR assigned it to.',
+      'Click “View full case history” to see everything: prior counselling, the LM’s statement, the HR investigation, witness statements and uploaded evidence.',
+      'A recommendation to the CEO is mandatory — you must select an action within the offence range and give your rationale before the case can move on.',
       'Review the case, the investigation and any evidence, then recommend an action to the CEO — within the offence\u2019s penalty range — with your rationale.',
       'Once recommended, the case moves to the CEO with your recommendation attached. The CEO makes the final decision.',
     ],
@@ -331,6 +335,7 @@ export const PANEL_GUIDE = {
       'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
       'For serious cases, after investigation you can Forward to CEO (CEO decides) or Forward to SMT (SMT recommends, then CEO decides) — in both, the CEO takes the final decision and closes the case.',
       'The SMT has several members — when forwarding to SMT, pick which member should handle the case from the dropdown.',
+      'When you forward a case you must give HR’s recommended action and the reason for it — a recommendation is mandatory and travels with the case to the SMT and the CEO.',
       'Use the Letter button to generate a formal disciplinary notice, and (once a case is closed, in All Cases) the Personnel Action Form for payroll — both auto-filled and printable.',
       'On a closed case, use the PAF button to generate a Personnel Action Form that actions the decision in payroll.',
       'For a serious case, you can activate a Jury of Peers (impartial panel) to give an independent finding and recommendation — advisory to the final decision.',
@@ -406,7 +411,7 @@ export const ROLE_NAV = {
   lm:    [ {id:'lm-queue',label:'My Team',icon:'👤'}, {id:'lm-counsel',label:'Counselling',icon:'💬'}, {id:'lm-raise',label:'Raise a Case',icon:'➕'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   hr:    [ {id:'hr-queue',label:'HR Queue',icon:'📥'}, {id:'hr-all',label:'All Cases',icon:'📁'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'report',label:'Weekly CEO Report',icon:'📋'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   staff: [ {id:'staff-notices',label:'My Notices',icon:'✉️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
-  ceo:   [ {id:'ceo-referrals',label:'Referrals',icon:'📨'}, {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'ceo-reinstate',label:'Re-instatement',icon:'♻️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
+  ceo:   [ {id:'ceo-referrals',label:'Referrals',icon:'📨'}, {id:'ceo-appeals',label:'Appeals',icon:'⚖️'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'ceo-reinstate',label:'Re-instatement',icon:'♻️'}, {id:'report',label:'Weekly Report',icon:'📋'}, {id:'counsel-log',label:'Counselling Log',icon:'💬'}, {id:'audit',label:'Audit Log',icon:'🧾'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   smt:   [ {id:'smt-queue',label:'SMT Referrals',icon:'🏛️'}, {id:'smt-decided',label:'Recommended',icon:'✅'}, {id:'charges',label:'Table of Charges',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
   exec:  [ {id:'exec-portfolio',label:'My Portfolio',icon:'🗂️'}, {id:'exec-appraisals',label:'Portfolio Appraisals',icon:'📈'}, {id:'exec-counsel',label:'Portfolio Counselling',icon:'💬'}, {id:'exec-discipline',label:'Portfolio Discipline',icon:'⚖️'}, {id:'howto',label:'How it works',icon:'ℹ️'} ],
 };

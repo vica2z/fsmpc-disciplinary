@@ -267,3 +267,15 @@ button{font-family:var(--font)}
 .counsel-alert .inv-title{color:#9A3412;margin-bottom:4px}
 .counsel-alert-row{font-size:13px;color:#3f4a5a;padding:4px 0;border-top:1px solid #FDE8D3}
 .counsel-alert-row:first-of-type{border-top:none}
+
+/* Full case history */
+.hist-sec{border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.hist-head{display:flex;align-items:center;gap:8px;background:var(--cream);padding:8px 12px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border)}
+.hist-num{width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold-lt);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.hist-body{padding:10px 12px}
+.hist-row{display:flex;gap:8px;font-size:13px;padding:3px 0;flex-wrap:wrap}
+.hist-k{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;min-width:132px;margin-top:6px}
+.hist-v{flex:1;min-width:180px}
+.hist-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.hist-item:last-child{border-bottom:none}
+.hist-quote{background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;margin:4px 0 8px;line-height:1.55}

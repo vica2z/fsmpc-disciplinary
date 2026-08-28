@@ -281,6 +281,34 @@ export const SEED_CASES=[
   referredBy:'HR', smtMember:'Daniel Whippy', smtRec:'D',
   smtRationale:'SMT agrees with HR. Intent to return does not change the unauthorised removal of company property.'},
 
+ /* With CEO — direct HR referral (no SMT), CEO to decide */
+ {id:'DC-1059',empId:446,off:30,occ:1,rec:'S20',status:'With CEO',raised:'2026-06-20',
+  desc:'Company laptop returned with a cracked screen and water damage after being taken off site without approval.',
+  serious:true, seriousAck:true,
+  investigation:{findings:'Asset FSM-LPT-0512 was taken off site on 12 June with no gate pass. Returned 18 June with a cracked screen and internal water damage. Repair quote is $1,850.',
+   lmDiscuss:'ICT Manager confirmed no off-site approval was requested for the device.',
+   staffDiscuss:'Employee stated he took the laptop home to finish a report and it was damaged by a spilled drink.',
+   witnesses:[{name:'Roddy Weital',note:'ICT support; logged the damage on return and obtained the repair quote.'}],
+   files:[], savedAt:'2026-06-21'},
+  hrRec:'S20', hrNote:'Unauthorised off-site removal resulting in significant damage. HR recommends a 20-day suspension and recovery of repair costs.',
+  referredBy:'HR'},
+
+ /* With CEO — via SMT, dismissal recommended */
+ {id:'DC-1062',empId:440,off:28,occ:1,rec:'D',status:'With CEO',raised:'2026-06-22',
+  desc:'Falsified overtime records claiming 46 hours that were not worked over a two-month period.',
+  serious:true, seriousAck:true,
+  investigation:{findings:'Cross-check of gate access logs against submitted timesheets shows 46 hours claimed with no corresponding site presence across April and May.',
+   lmDiscuss:'Finance Manager confirmed the overtime was approved on the basis of the submitted sheets alone.',
+   staffDiscuss:'Employee initially disputed the figures, then accepted the logs were accurate.',
+   witnesses:[{name:'Johnny Adolph',note:'Finance; produced the payroll records and the overtime approvals.'},
+              {name:'Mylani Alexander',note:'Security; confirmed the gate access log extracts are complete.'}],
+   files:[], savedAt:'2026-06-24'},
+  jury:{active:true, members:[{name:'Gibson Siba',dept:'Terminals'},{name:'Berny Etse',dept:'ICT'},{name:'Caroline Fritz',dept:'Terminals'}],
+   finding:'Substantiated', rec:'D', notes:'Panel found deliberate falsification over a sustained period, not an administrative error.', savedAt:'2026-06-25'},
+  hrRec:'D', hrNote:'Deliberate falsification of records for financial gain. HR recommends dismissal and recovery of the overpayment.',
+  referredBy:'HR', smtMember:'Daniel Whippy', smtRec:'D',
+  smtRationale:'SMT concurs. The conduct was sustained and deliberate, and the trust required for the role cannot be maintained.'},
+
  /* Closed — reduced after response; shows PAF + letter */
  {id:'DC-1033',empId:444,off:2,occ:1,rec:'S3',status:'Closed',raised:'2026-04-20',
   desc:'Absent for two days without authorisation or notice (AWOL).',

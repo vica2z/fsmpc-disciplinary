@@ -25,7 +25,11 @@ export function useStore() {
   const [logs,  setLogs]  = useState(() => initial?.logs  ?? []);
   const [couns, setCouns] = useState(() => initial?.couns ?? [
     { id:'CN-2001', empId:341, topic:'Repeated late arrivals over two weeks', discussed:'Agreed to adjust commute; verbal reminder given.', outcome:'Resolved', date:'2026-06-10', by:'Wayne Narruhn' },
-    { id:'CN-2002', empId:447, topic:'Incomplete handover notes', discussed:'Explained standard; employee acknowledged.', outcome:'Verbal admonishment', date:'2026-06-14', by:'Lesivou Bulabalavu' },
+    { id:'CN-2002', empId:447, topic:'Incomplete handover notes at end of shift', discussed:'Explained the handover standard and showed the template; employee acknowledged.', outcome:'Verbal admonishment', date:'2026-06-14', by:'Lesivou Bulabalavu' },
+    { id:'CN-2003', empId:628, topic:'Raised voice toward a colleague during shift handover', discussed:'Discussed workplace conduct expectations; employee apologised to the colleague.', outcome:'Verbal admonishment', date:'2026-05-30', by:'Sireli Sovau' },
+    { id:'CN-2004', empId:446, topic:'Not wearing anti-static PPE in the server room', discussed:'Reminded of PPE requirement and shown the storage point at the entrance.', outcome:'Escalated', date:'2026-06-05', by:'Lesivou Bulabalavu', escalatedTo:'DC-1048' },
+    { id:'CN-2005', empId:440, topic:'Personal browsing during working hours', discussed:'Went through the acceptable-use policy; employee agreed to limit use to breaks.', outcome:'Resolved', date:'2026-05-20', by:'Johnny Adolph' },
+    { id:'CN-2006', empId:441, topic:'Monthly progress report submitted late twice', discussed:'Agreed a reminder in the calendar and a draft-by date three days ahead.', outcome:'Resolved', date:'2026-06-02', by:'Neil Halstead' },
   ]);
 
   const log = useCallback((role, caseId, action) => {

@@ -195,14 +195,115 @@ export const STEPS = [
 
 
 export const SEED_CASES=[
- {id:'DC-1042',empId:341,off:14,occ:1,rec:'D',status:'Closed',raised:'2026-05-12',desc:'Found asleep at the fuel terminal control room during night shift where public safety could be affected.',decision:'D',outcome:'Upheld'},
- {id:'DC-1051',empId:447,off:1,occ:2,rec:'R',status:'Awaiting Response',raised:'2026-06-15',desc:'Arrived more than 40 minutes late on three occasions in June without notifying the supervisor.',noticeDate:'2026-06-16'},
- {id:'DC-1048',empId:446,off:8,occ:1,rec:'S10',status:'With HR',raised:'2026-06-12',desc:'Worked in the server room without the required anti-static and safety equipment despite reminders.'},
- {id:'DC-1039',empId:440,off:16,occ:1,rec:'R',status:'Under Appeal',raised:'2026-05-28',desc:'Extensive personal use of company internet and email during working hours over several weeks.',noticeDate:'2026-05-29',appealDate:'2026-06-10'},
- {id:'DC-1033',empId:444,off:2,occ:1,rec:'S3',status:'Closed',raised:'2026-04-20',desc:'Absent for two days without authorisation or notice (AWOL).',decision:'R',outcome:'Upheld (reduced to written warning after response)'},
- {id:'DC-1055',empId:341,off:1,occ:1,rec:'A',status:'Closed',raised:'2026-03-05',desc:'Late on one occasion without prior notice.',decision:'A',outcome:'Upheld'},
- {id:'DC-1058',empId:628,off:21,occ:1,rec:'R',status:'With HR',raised:'2026-06-18',desc:'Refused a reasonable instruction from the shift supervisor and used disrespectful language.'},
- {id:'DC-1060',empId:441,off:13,occ:1,rec:'R',status:'Draft',raised:'2026-06-20',desc:'Repeated delay in submitting the monthly project progress report despite reminders.'},
+ /* Closed — dismissal: has full investigation, jury, property retrieval, PAF-ready */
+ {id:'DC-1042',empId:341,off:14,occ:1,rec:'D',status:'Closed',raised:'2026-05-12',
+  desc:'Found asleep at the fuel terminal control room during night shift where public safety could be affected.',
+  serious:true, seriousAck:true,
+  investigation:{findings:'CCTV between 02:10 and 02:48 shows the control desk unattended with the operator asleep in the adjacent chair. Alarm panel was unmonitored for 38 minutes.',
+   lmDiscuss:'Terminal Manager confirmed the operator had been briefed on night-shift monitoring duties two weeks earlier.',
+   staffDiscuss:'Employee admitted falling asleep, stated he had worked a double shift but had not requested relief.',
+   witnesses:[{name:'Sireli Sovau',note:'Relieving operator; found the control desk unattended at 02:45.'},
+              {name:'Wayne Narruhn',note:'Shift supervisor; confirmed no relief request was logged that night.'}],
+   files:[], savedAt:'2026-05-15'},
+  jury:{active:true, members:[{name:'Mylani Alexander',dept:'Safety'},{name:'Nikson Garoa',dept:'Terminals'},{name:'Berny Etse',dept:'ICT'}],
+   finding:'Substantiated', rec:'D', notes:'Panel accepted the fatigue explanation but held that leaving a fuel control room unmonitored is a critical safety breach.', savedAt:'2026-05-18'},
+  hrRec:'D', hrNote:'Public safety was endangered. HR recommends dismissal in line with the Table of Charges.',
+  referredBy:'HR', smtMember:'Isikeli Rabici', smtRec:'D',
+  smtRationale:'SMT concurs with HR and the peer panel. The breach placed the terminal and the public at risk.',
+  response:'I accept I fell asleep. I had completed a double shift and should have asked for relief.',
+  decision:'D', outcome:'Dismissal upheld by CEO',
+  property:{items:{'Laptop / computer':{returned:true,note:'Asset tag FSM-LPT-0447'},
+    'Mobile phone / SIM':{returned:true,note:'SIM cancelled 22/05'},
+    'Access keys':{returned:true,note:'Terminal gate + control room'},
+    'ID / access card':{returned:true,note:''},
+    'Uniform / PPE':{returned:true,note:'2 sets, helmet, boots'},
+    'Fuel card':{returned:false,note:'Reported lost — card blocked'}},
+   by:'Wayne Narruhn', savedAt:'2026-05-22'}},
+
+ /* Awaiting Response — notice issued, investigation done, letter available */
+ {id:'DC-1051',empId:447,off:1,occ:2,rec:'R',status:'Awaiting Response',raised:'2026-06-15',
+  desc:'Arrived more than 40 minutes late on three occasions in June without notifying the supervisor.',
+  noticeDate:'2026-06-16',
+  investigation:{findings:'Gate access logs confirm late entry on 3, 9 and 11 June (42, 55 and 47 minutes late). No prior notification was recorded on any occasion.',
+   lmDiscuss:'Help Desk Team Leader confirmed the employee was counselled informally in May about punctuality.',
+   staffDiscuss:'Employee cited transport difficulties and agreed the lateness was not notified in advance.',
+   witnesses:[{name:'Lesivou Bulabalavu',note:'Line manager; confirmed no advance notice was given on any of the three dates.'}],
+   files:[], savedAt:'2026-06-16'}},
+
+ /* With HR — investigated, ready to forward or notice */
+ {id:'DC-1048',empId:446,off:8,occ:1,rec:'S10',status:'With HR',raised:'2026-06-12',
+  desc:'Worked in the server room without the required anti-static and safety equipment despite reminders.',
+  serious:true,
+  investigation:{findings:'Employee entered the server room on 11 June without anti-static wrist strap or safety footwear. Two prior verbal reminders are on record.',
+   lmDiscuss:'ICT Manager confirmed PPE is issued and stored at the server room entrance.',
+   staffDiscuss:'Employee stated the task was brief and he did not consider PPE necessary.',
+   witnesses:[{name:'Berny Etse',note:'Present in the server room; confirmed no PPE was worn.'}],
+   files:[], savedAt:'2026-06-14'}},
+
+ /* Under Appeal — CEO appeals panel */
+ {id:'DC-1039',empId:440,off:16,occ:1,rec:'R',status:'Under Appeal',raised:'2026-05-28',
+  desc:'Extensive personal use of company internet and email during working hours over several weeks.',
+  noticeDate:'2026-05-29', appealDate:'2026-06-10',
+  investigation:{findings:'Network logs show an average of 2.5 hours per day on non-work streaming and social media over a four-week period.',
+   lmDiscuss:'Line manager reported no drop in output but confirmed the usage policy was circulated in March.',
+   staffDiscuss:'Employee stated much of the usage occurred during authorised breaks.',
+   witnesses:[], files:[], savedAt:'2026-06-01'},
+  response:'A large part of the recorded time was during my lunch break and approved rest periods.',
+  decision:'R', outcome:'Written warning issued',
+  appeal:'The log does not separate break periods from working hours, and my output was never below target.'},
+
+ /* With SMT — waiting on an SMT recommendation */
+ {id:'DC-1056',empId:628,off:21,occ:2,rec:'S3',status:'With SMT',raised:'2026-06-17',
+  desc:'Refused a direct instruction to complete a safety check and used abusive language toward the shift supervisor in front of other staff.',
+  serious:true, seriousAck:true,
+  investigation:{findings:'Two witnesses confirm the instruction was given clearly and refused, followed by abusive language. This is the second such incident in twelve months.',
+   lmDiscuss:'Shift supervisor confirmed the instruction was a routine safety check.',
+   staffDiscuss:'Employee acknowledged raising his voice but disputes the wording alleged.',
+   witnesses:[{name:'Nikson Garoa',note:'Heard the refusal and the language used.'},
+              {name:'Caroline Fritz',note:'Confirmed the supervisor asked twice before the refusal.'}],
+   files:[], savedAt:'2026-06-19'},
+  jury:{active:true, members:[{name:'Roddy Weital',dept:'ICT'},{name:'Mohammed Zaid',dept:'Operations'}],
+   finding:'Partly substantiated', rec:'S3', notes:'Panel accepts the refusal occurred; wording of the language is disputed.', savedAt:'2026-06-20'},
+  referredBy:'HR', smtMember:'Litia Mara',
+  hrRec:'S3', hrNote:'Second occurrence of insubordination. HR recommends a 3-day suspension and a final written warning on file.'},
+
+ /* With CEO — SMT has recommended, CEO to decide */
+ {id:'DC-1057',empId:444,off:27,occ:1,rec:'D',status:'With CEO',raised:'2026-06-19',
+  desc:'Attempted removal of two drums of lubricant from the store without a gate pass or authorisation.',
+  serious:true, seriousAck:true,
+  investigation:{findings:'Gate security stopped the vehicle and found two 20L drums with no gate pass. Store records show no issue note for the items.',
+   lmDiscuss:'Supply Chain Officer confirmed no authorisation was requested or granted.',
+   staffDiscuss:'Employee stated he intended to return the drums after use at home and did not consider it theft.',
+   witnesses:[{name:'Mylani Alexander',note:'Gate security; stopped the vehicle and recorded the items.'},
+              {name:'Gibson Siba',note:'Store supervisor; confirmed no issue note exists for the drums.'}],
+   files:[], savedAt:'2026-06-20'},
+  hrRec:'D', hrNote:'Attempted removal of company property without authorisation. HR recommends dismissal per the Table of Charges.',
+  referredBy:'HR', smtMember:'Daniel Whippy', smtRec:'D',
+  smtRationale:'SMT agrees with HR. Intent to return does not change the unauthorised removal of company property.'},
+
+ /* Closed — reduced after response; shows PAF + letter */
+ {id:'DC-1033',empId:444,off:2,occ:1,rec:'S3',status:'Closed',raised:'2026-04-20',
+  desc:'Absent for two days without authorisation or notice (AWOL).',
+  noticeDate:'2026-04-21',
+  investigation:{findings:'Absent 15 and 16 April. No leave application and no contact with the supervisor on either day.',
+   lmDiscuss:'Supervisor confirmed no call was received.',
+   staffDiscuss:'Employee reported a family bereavement and produced supporting documentation after the fact.',
+   witnesses:[], files:[], savedAt:'2026-04-22'},
+  response:'My grandmother passed away and I travelled to the village. I had no phone signal to notify my supervisor.',
+  decision:'R', outcome:'Upheld (reduced to written warning after response)'},
+
+ {id:'DC-1055',empId:341,off:1,occ:1,rec:'A',status:'Closed',raised:'2026-03-05',
+  desc:'Late on one occasion without prior notice.',
+  response:'I was delayed by a road closure and did not have the supervisor number saved.',
+  decision:'A', outcome:'Upheld'},
+
+ /* With HR — not yet investigated, so the Investigate step is demonstrable */
+ {id:'DC-1058',empId:628,off:21,occ:1,rec:'R',status:'With HR',raised:'2026-06-18',
+  desc:'Refused a reasonable instruction from the shift supervisor and used disrespectful language.'},
+
+ /* Draft — LM side */
+ {id:'DC-1060',empId:441,off:13,occ:1,rec:'R',status:'Draft',raised:'2026-06-20',
+  desc:'Repeated delay in submitting the monthly project progress report despite reminders.'},
 ];
 
 /* Per-panel guide — a short "how this panel works" shown on every screen,

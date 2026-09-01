@@ -496,53 +496,61 @@ function ExecCounselling({ store, execId }) {
 function LMRaise({ store, setView }) {
   const { cases, emps, offs } = store;
   const [empId, setEmpId] = useState('');
-  const [offN, setOffN] = useState('');
-  const [rec, setRec] = useState('');
+  const [rows, setRows] = useState([{ off: '', rec: '' }]);   // multiple offences
   const [desc, setDesc] = useState('');
   const [date, setDate] = useState('2026-06-21');
   const [serious, setSerious] = useState(false);
-
-  const penalty = useMemo(() => {
-    if (!empId || !offN) return null;
-    const e = empById(+empId, emps), o = offByN(+offN, offs);
-    if (!e || !o) return null;
-    const occ = occurrenceFor(+empId, +offN, cases);
-    const pair = rangeForOcc(o, occ);
-    return { e, o, occ, pair, opts: optionsInRange(pair), prior: occ - 1 };
-  }, [empId, offN, cases, emps, offs]);
 
   const priorCounselling = useMemo(() => {
     if (!empId) return [];
     return store.couns.filter(c => c.empId === +empId);
   }, [empId, store.couns]);
 
+  // per-row penalty info (occurrence + range), counting earlier rows in this case as history
+  function rowInfo(off, idxOffsetSameOff) {
+    if (!empId || !off) return null;
+    const o = offByN(+off, offs); if (!o) return null;
+    let occ = occurrenceFor(+empId, +off, cases) + idxOffsetSameOff;
+    const pair = rangeForOcc(o, occ);
+    return { o, occ, pair, opts: optionsInRange(pair) };
+  }
+
+  function setRow(i, patch) { setRows(rs => rs.map((r, idx) => idx === i ? { ...r, ...patch } : r)); }
+  function addRow() { setRows(rs => [...rs, { off: '', rec: '' }]); }
+  function removeRow(i) { setRows(rs => rs.length > 1 ? rs.filter((_, idx) => idx !== i) : rs); }
+
   function submit(asDraft) {
-    if (!empId || !offN) { alert('Select an employee and an offence.'); return; }
-    if (!asDraft && !rec) { alert('Select a recommended action within the range.'); return; }
-    store.submitCase(+empId, +offN, rec || penalty.opts[0], desc, date, asDraft, serious);
-    setEmpId(''); setOffN(''); setRec(''); setDesc(''); setSerious(false);
+    if (!empId) { alert('Select an employee.'); return; }
+    const chosen = rows.filter(r => r.off);
+    if (!chosen.length) { alert('Select at least one offence.'); return; }
+    // duplicate offence check
+    const seen = new Set();
+    for (const r of chosen) { if (seen.has(r.off)) { alert('The same offence is selected more than once.'); return; } seen.add(r.off); }
+    if (!asDraft) {
+      for (const r of chosen) if (!r.rec) { alert('Select a recommended action for every offence.'); return; }
+    }
+    // fill missing rec with first option when saving a draft
+    const payload = chosen.map((r, i) => {
+      const info = rowInfo(r.off, chosen.slice(0, i).filter(x => x.off === r.off).length);
+      return { off: r.off, rec: r.rec || (info ? info.opts[0] : '') };
+    });
+    store.submitCaseMulti(+empId, payload, desc, date, asDraft, serious);
+    setEmpId(''); setRows([{ off: '', rec: '' }]); setDesc(''); setSerious(false);
     setView('lm-queue');
   }
 
   return (
     <div className="page">
-      <PageHead title="Raise a Disciplinary Case" info="Start a formal case. The system checks history, shows the penalty range, and lets you flag serious offences." sub="Counsel first — raise a formal case only if the problem continues" />
+      <PageHead title="Raise a Disciplinary Case" info="Start a formal case. Add one or more offences — each is checked for its own occurrence and penalty range." sub="Counsel first — raise a formal case only if the problem continues" />
       <GuideBanner view="lm-raise" />
       <Card>
-        <div className="form-grid">
-          <Field label="Employee">
-            <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRec(''); }}>
-              <option value="">— Select employee —</option>
-              {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
-            </select>
-          </Field>
-          <Field label="Offence">
-            <select className="input" value={offN} onChange={e => { setOffN(e.target.value); setRec(''); }}>
-              <option value="">— Select offence —</option>
-              {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
-            </select>
-          </Field>
-        </div>
+        <Field label="Employee">
+          <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRows([{ off: '', rec: '' }]); }}>
+            <option value="">— Select employee —</option>
+            {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
+          </select>
+        </Field>
+
         {priorCounselling.length > 0 && (
           <div className="counsel-alert">
             <div className="inv-title">⚠ Prior counselling on file for {empById(+empId, emps)?.name}</div>
@@ -555,21 +563,45 @@ function LMRaise({ store, setView }) {
             ))}
           </div>
         )}
-        {penalty && (
-          <div className="penalty-box">
-            <div className="sub">System check (automatic)</div>
-            <div className="penalty-title">This is {penalty.e.name}’s <span className="accent">{occLabel(penalty.occ)} occurrence</span>{penalty.prior ? ` (${penalty.prior} prior closed)` : ''}.</div>
-            <div className="penalty-range"><span className="sub">Penalty range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(penalty.pair) }} /></div>
-            {penalty.o.note && <div className="penalty-note">⚠ {penalty.o.note}</div>}
-          </div>
-        )}
-        <div className="form-grid">
-          <Field label="Recommended action">
-            <select className="input" value={rec} onChange={e => setRec(e.target.value)} disabled={!penalty}>
-              <option value="">— Select action —</option>
-              {penalty && penalty.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
-            </select>
-          </Field>
+
+        <div className="offences-head">
+          <span>Offences <span className="sub">(a single incident may involve more than one)</span></span>
+          <TipBtn tip="Add another offence to this case. Each offence is assessed on its own occurrence and penalty range." className="btn btn-sm btn-ghost" onClick={addRow}>+ Add offence</TipBtn>
+        </div>
+
+        {rows.map((r, i) => {
+          const info = rowInfo(r.off, rows.slice(0, i).filter(x => x.off && x.off === r.off).length);
+          return (
+            <div key={i} className="off-row">
+              <div className="off-row-head">
+                <b>Offence {i + 1}</b>
+                {rows.length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => removeRow(i)}>Remove</button>}
+              </div>
+              <div className="form-grid">
+                <Field label="Offence">
+                  <select className="input" value={r.off} onChange={e => setRow(i, { off: e.target.value, rec: '' })}>
+                    <option value="">— Select offence —</option>
+                    {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Recommended action">
+                  <select className="input" value={r.rec} onChange={e => setRow(i, { rec: e.target.value })} disabled={!info}>
+                    <option value="">— Select action —</option>
+                    {info && info.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
+                  </select>
+                </Field>
+              </div>
+              {info && (
+                <div className="penalty-box">
+                  <div className="penalty-title">{occLabel(info.occ)} occurrence — <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(info.pair) }} /></div>
+                  {info.o.note && <div className="penalty-note">⚠ {info.o.note}</div>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="form-grid" style={{ marginTop: 4 }}>
           <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
         </div>
         <Field label="Statement of facts"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What happened, investigations, employee response so far…" /></Field>
@@ -579,7 +611,7 @@ function LMRaise({ store, setView }) {
         </label>
         <div className="form-actions">
           <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
-          <TipBtn tip="Send this draft case to HR for review." className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</TipBtn>
+          <TipBtn tip="Send this case to HR for review." className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</TipBtn>
         </div>
       </Card>
     </div>

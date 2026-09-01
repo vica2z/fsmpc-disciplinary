@@ -64,6 +64,27 @@ export function useStore() {
     log('lm', newId, (serious ? 'Raised SERIOUS case — HR alerted immediately' : (asDraft ? 'Saved case as draft' : 'Raised case and submitted to HR')));
   }, [nextCaseId, log]);
 
+  const submitCaseMulti = useCallback((empId, offences, desc, date, asDraft, serious) => {
+    // offences: [{off, rec}] — compute occurrence per offence
+    let newId;
+    setCases(prev => {
+      newId = nextCaseId(prev);
+      const list = offences.map(o => {
+        const occ = occurrenceFor(+empId, +o.off, prev);
+        return { off: +o.off, occ, rec: o.rec };
+      });
+      const first = list[0] || {};
+      return [{
+        id: newId, empId: +empId,
+        off: first.off, occ: first.occ, rec: first.rec,   // mirror first offence (back-compat)
+        offences: list,
+        status: asDraft ? 'Draft' : 'With HR',
+        raised: date || '2026-06-21', desc: desc || '', serious: !!serious,
+      }, ...prev];
+    });
+    log('lm', newId, (asDraft ? 'Saved draft case' : 'Raised case') + ' with ' + offences.length + ' offence(s)' + (serious ? ' — flagged serious' : ''));
+  }, [nextCaseId, log]);
+
   const updateCase = useCallback((id, patch) =>
     setCases(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c)), []);
 
@@ -199,7 +220,7 @@ export function useStore() {
 
   return {
     cases, emps, offs, logs, couns,
-    submitCase, updateCase, deleteCase,
+    submitCase, submitCaseMulti, updateCase, deleteCase,
     issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation, saveJury, saveProperty,
     forwardToCEO, forwardToSMT, smtRecommend, ceoDecideReferral, reinstateEmployee,
     addCounselling, updateCounselling, deleteCounselling, escalateCounselling,

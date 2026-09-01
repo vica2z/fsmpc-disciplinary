@@ -295,3 +295,8 @@ h1 .infotip-bubble{font-size:12px}
 .tipbtn{display:inline-flex;align-items:center;gap:2px}
 .tipbtn .infotip{margin-left:3px}
 .tipbtn .infotip-i{width:15px;height:15px;font-size:10px}
+
+/* Multi-offence rows */
+.offences-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;font-size:13px;font-weight:800;color:var(--navy)}
+.off-row{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.off-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--navy)}

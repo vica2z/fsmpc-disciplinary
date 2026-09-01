@@ -300,3 +300,10 @@ h1 .infotip-bubble{font-size:12px}
 .offences-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;font-size:13px;font-weight:800;color:var(--navy)}
 .off-row{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
 .off-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--navy)}
+
+/* Multi-offence display */
+.multi-badge{display:inline-block;background:var(--navy);color:var(--gold-lt);font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;margin-bottom:5px}
+.multi-off{font-size:12.5px;color:var(--ink);padding:2px 0;line-height:1.4}
+.chip-mini{margin-left:2px}
+.hist-off{border:1px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:7px;font-size:13px}
+.hist-off-head{font-weight:700;color:var(--navy);margin-bottom:3px}

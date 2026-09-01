@@ -695,8 +695,8 @@ function HRQueue({ store }) {
                   <tr key={c.id} className={c.serious ? 'row-serious' : ''}>
                     <td className="mono">{c.id}{c.serious && <div style={{marginTop:4}}><span className="pill st-serious">⚠ Serious</span></div>}</td>
                     <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
-                    <td>{o?.name}</td>
-                    <td>{occLabel(c.occ)}</td>
+                    <td><OffenceCell c={c} offs={offs} /></td>
+                    <td>{caseOffences(c).map(x=>occLabel(x.occ)).join(", ")}</td>
                     <td dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
                     <td className="row-actions">
@@ -1160,7 +1160,7 @@ function HRAll({ store }) {
                 <tr key={c.id}>
                   <td className="mono">{c.id}</td>
                   <td><b>{e.name}</b></td>
-                  <td>{o.name}<div className="sub">{o.cat}</div></td>
+                  <td><OffenceCell c={c} offs={offs} /></td>
                   <td>{occLabel(c.occ)}</td>
                   <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
                   <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
@@ -1244,11 +1244,13 @@ function CaseHistoryModal({ store, c, onClose }) {
       <Sec n="1" title="Employee & charge">
         <Row k="Employee">{e?.name} — {e?.title}, {e?.dept}</Row>
         <Row k="Supervisor">{e?.sup}</Row>
-        <Row k="Offence">{o?.n}. {o?.name}</Row>
-        <Row k="Category">{o?.cat}</Row>
-        <Row k="Occurrence">{occLabel(c.occ)}</Row>
-        <Row k="Penalty range"><span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></Row>
-        {o?.note && <div className="penalty-note">⚠ {o.note}</div>}
+        {caseOffences(c).map((x, i) => { const oo = offByN(x.off, offs); const pr = oo ? rangeForOcc(oo, x.occ) : null; return (
+          <div key={i} className="hist-off">
+            <div className="hist-off-head">{caseOffences(c).length > 1 ? `Offence ${i + 1}: ` : ''}{oo?.n}. {oo?.name}</div>
+            <div className="sub">{oo?.cat} · {occLabel(x.occ)} occurrence · range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pr) }} />{x.rec ? <> · LM recommended <span className={'chip ' + penClass(x.rec)}>{x.rec}</span></> : null}</div>
+            {oo?.note && <div className="penalty-note">⚠ {oo.note}</div>}
+          </div>
+        ); })}
       </Sec>
 
       <Sec n="2" title="Counselling before the case">
@@ -1266,6 +1268,17 @@ function CaseHistoryModal({ store, c, onClose }) {
         <Row k="LM recommended">{c.rec ? <><span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</> : '—'}</Row>
         {c.serious && <div className="penalty-note">⚠ Flagged as a serious offence — reported to HR immediately.</div>}
         {c.desc && <div className="hist-quote">{c.desc}</div>}
+        {c.lmFiles?.length > 0 && <>
+          <div className="hist-k">LM documents / evidence</div>
+          <div className="file-list">
+            {c.lmFiles.map((f, i) => (
+              <div key={i} className="file-chip">
+                {f.type && f.type.startsWith('image/') ? <img src={f.data} alt={f.name} className="file-thumb" /> : <span className="file-ico">📄</span>}
+                <div className="file-meta"><a href={f.data} download={f.name} className="file-name">{f.name}</a><div className="sub">{(f.size/1024).toFixed(0)} KB</div></div>
+              </div>
+            ))}
+          </div>
+        </>}
       </Sec>
 
       <Sec n="4" title="HR investigation">
@@ -1634,8 +1647,8 @@ function ExecDiscipline({ store, execId }) {
                     <td className="mono">{c.id}</td>
                     <td><b>{e?.name}</b><div className="sub">{e?.title}</div></td>
                     <td>{e?.dept}</td>
-                    <td>{o?.name}</td>
-                    <td>{occLabel(c.occ)}</td>
+                    <td><OffenceCell c={c} offs={offs} /></td>
+                    <td>{caseOffences(c).map(x=>occLabel(x.occ)).join(", ")}</td>
                     <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
                   </tr>
@@ -2026,6 +2039,28 @@ function TipBtn({ tip, className, onClick, children }) {
     </span>
   );
 }
+/* Normalise a case to its offence list (multi-offence or legacy single). */
+function caseOffences(c) {
+  if (c.offences && c.offences.length) return c.offences;
+  return [{ off: c.off, occ: c.occ, rec: c.rec }];
+}
+/* Compact multi-offence cell for tables. */
+function OffenceCell({ c, offs }) {
+  const list = caseOffences(c);
+  if (list.length === 1) {
+    const o = offByN(list[0].off, offs);
+    return <span>{o?.name}{o?.cat && <span className="sub">{o.cat}</span>}</span>;
+  }
+  return (
+    <span>
+      <span className="multi-badge">{list.length} offences</span>
+      {list.map((x, i) => { const o = offByN(x.off, offs); return (
+        <div key={i} className="multi-off">{i + 1}. {o?.name} <span className="chip-mini"><span className={'chip ' + penClass(x.rec)}>{x.rec}</span></span></div>
+      ); })}
+    </span>
+  );
+}
+
 function PageHead({ title, sub, right, info }) {
   return <div className="page-head"><div><h1>{title}{info && <InfoTip text={info} />}</h1>{sub && <p className="page-sub">{sub}</p>}</div>{right && <div className="page-head-r">{right}</div>}</div>;
 }

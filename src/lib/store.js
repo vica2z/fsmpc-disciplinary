@@ -64,7 +64,7 @@ export function useStore() {
     log('lm', newId, (serious ? 'Raised SERIOUS case — HR alerted immediately' : (asDraft ? 'Saved case as draft' : 'Raised case and submitted to HR')));
   }, [nextCaseId, log]);
 
-  const submitCaseMulti = useCallback((empId, offences, desc, date, asDraft, serious) => {
+  const submitCaseMulti = useCallback((empId, offences, desc, date, asDraft, serious, lmFiles) => {
     // offences: [{off, rec}] — compute occurrence per offence
     let newId;
     setCases(prev => {
@@ -80,6 +80,7 @@ export function useStore() {
         offences: list,
         status: asDraft ? 'Draft' : 'With HR',
         raised: date || '2026-06-21', desc: desc || '', serious: !!serious,
+        lmFiles: lmFiles || [],
       }, ...prev];
     });
     log('lm', newId, (asDraft ? 'Saved draft case' : 'Raised case') + ' with ' + offences.length + ' offence(s)' + (serious ? ' — flagged serious' : ''));

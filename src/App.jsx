@@ -500,6 +500,14 @@ function LMRaise({ store, setView }) {
   const [desc, setDesc] = useState('');
   const [date, setDate] = useState('2026-06-21');
   const [serious, setSerious] = useState(false);
+  const [files, setFiles] = useState([]);
+
+  function onFiles(ev) {
+    const list = Array.from(ev.target.files || []);
+    list.forEach(f => { const r = new FileReader(); r.onload = () => setFiles(prev => [...prev, { name: f.name, type: f.type, size: f.size, data: r.result }]); r.readAsDataURL(f); });
+    ev.target.value = '';
+  }
+  function removeFile(i) { setFiles(f => f.filter((_, idx) => idx !== i)); }
 
   const priorCounselling = useMemo(() => {
     if (!empId) return [];
@@ -534,8 +542,8 @@ function LMRaise({ store, setView }) {
       const info = rowInfo(r.off, chosen.slice(0, i).filter(x => x.off === r.off).length);
       return { off: r.off, rec: r.rec || (info ? info.opts[0] : '') };
     });
-    store.submitCaseMulti(+empId, payload, desc, date, asDraft, serious);
-    setEmpId(''); setRows([{ off: '', rec: '' }]); setDesc(''); setSerious(false);
+    store.submitCaseMulti(+empId, payload, desc, date, asDraft, serious, files);
+    setEmpId(''); setRows([{ off: '', rec: '' }]); setDesc(''); setSerious(false); setFiles([]);
     setView('lm-queue');
   }
 
@@ -605,6 +613,24 @@ function LMRaise({ store, setView }) {
           <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
         </div>
         <Field label="Statement of facts"><textarea className="input" rows={3} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What happened, investigations, employee response so far…" /></Field>
+        <div className="inv-section">
+          <div className="inv-title">Supporting documents & evidence <InfoTip text="Attach any documents or images that support the case — reports, photos, emails, CCTV stills. HR sees these during the investigation." /></div>
+          {files.length > 0 && (
+            <div className="file-list">
+              {files.map((f, i) => (
+                <div key={i} className="file-chip">
+                  {f.type && f.type.startsWith('image/') ? <img src={f.data} alt={f.name} className="file-thumb" /> : <span className="file-ico">📄</span>}
+                  <div className="file-meta"><a href={f.data} download={f.name} className="file-name">{f.name}</a><div className="sub">{(f.size/1024).toFixed(0)} KB</div></div>
+                  <button type="button" className="btn btn-sm btn-danger" onClick={() => removeFile(i)}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="file-drop">
+            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={onFiles} hidden />
+            <span>📎 Click to upload documents or images</span>
+          </label>
+        </div>
         <label className="serious-check">
           <input type="checkbox" checked={serious} onChange={e => setSerious(e.target.checked)} />
           <span><b>Serious offence</b> — report to HR immediately. HR is alerted now, while the investigation continues.</span>
@@ -678,12 +704,12 @@ function HRQueue({ store }) {
                         <TipBtn tip="Open the investigation: record findings, discussions, witnesses and evidence before any notice is issued." className="btn btn-sm btn-navy" onClick={() => setInvestigating(c)}>Investigate</TipBtn>}
                       {c.status === 'With HR' && c.investigation && <>
                         <TipBtn tip="Re-open the saved investigation to review or edit findings, witnesses and evidence." className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</TipBtn>
-                        <button className="btn btn-sm btn-ghost" onClick={() => setJuring(c)}>{c.jury?.active ? 'Jury ✓' : 'Jury of Peers'}</button>
+                        <TipBtn tip="Activate an impartial peer panel to give an independent finding and recommendation on a serious case." className="btn btn-sm btn-ghost" onClick={() => setJuring(c)}>{c.jury?.active ? 'Jury ✓' : 'Jury of Peers'}</TipBtn>
                         <TipBtn tip="Send the case straight to the CEO for a final decision (HR recommendation required)." className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</TipBtn>
                         <TipBtn tip="Send the case to a chosen SMT member for a recommendation to the CEO (HR recommendation required)." className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</TipBtn>
                       </>}
                       {c.status !== 'With HR' && c.status !== 'Under Appeal' &&
-                        <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
+                        <TipBtn tip="Issue notice starts the 5-day response window; Record response captures the employee\u2019s reply; Record decision sets the final action and closes the case." className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</TipBtn>}
                       {c.status === 'Under Appeal' && <><span className="sub">With CEO — under appeal</span><TipBtn tip="Open the full case history: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</TipBtn></>}
                       {['Awaiting Response','Awaiting Decision','Closed','Under Appeal'].includes(c.status) &&
                         <TipBtn tip="Generate a formatted disciplinary notice, auto-filled from the case, to print or save as PDF." className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</TipBtn>}
@@ -892,7 +918,7 @@ function JuryModal({ store, c, onClose }) {
 
   return (
     <Modal title={`Jury of Peers — ${c.id}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save jury panel</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save jury</button></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="sub">For a serious case, HR may activate a Jury of Peers — an impartial panel of fellow employees who review the case and give an independent finding and recommendation to inform the decision.</div>
@@ -900,7 +926,7 @@ function JuryModal({ store, c, onClose }) {
 
       <label className="serious-check" style={{ marginBottom: 14 }}>
         <input type="checkbox" checked={active} onChange={ev => setActive(ev.target.checked)} />
-        <span><b>Activate a Jury of Peers</b> for this case</span>
+        <span><b>Activate a Jury of Peers</b> for this case <InfoTip text="Convene an impartial panel of peers. Record members, their finding and a recommended action. Advisory only — HR/SMT/CEO still decide." /></span>
       </label>
 
       {active && <>
@@ -1461,7 +1487,7 @@ function CEOAppeals({ store }) {
             </div>
             <div className="notice-actions">
               <TipBtn tip="Open the full case history: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View</TipBtn>
-              <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'CEO ruling', to: 'Closed' } })}>Rule on appeal</button>
+              <TipBtn tip="Record the CEO\u2019s final ruling on the appeal. The ruling is final and closes the case." className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'CEO ruling', to: 'Closed' } })}>Rule on appeal</TipBtn>
             </div>
           </Card>
         );

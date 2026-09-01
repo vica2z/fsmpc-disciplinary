@@ -589,7 +589,7 @@ function LMRaise({ store, setView }) {
 /* ═══════════ HR MANAGER ═══════════ */
 function HRQueue({ store }) {
   const { cases, emps, offs } = store;
-  const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision'].includes(c.status));
+  const queue = cases.filter(c => ['With HR', 'Awaiting Response', 'Awaiting Decision', 'Under Appeal'].includes(c.status));
   const [acting, setActing] = useState(null);
   const [investigating, setInvestigating] = useState(null);
   const [juring, setJuring] = useState(null);
@@ -597,6 +597,7 @@ function HRQueue({ store }) {
   const [lettering, setLettering] = useState(null);
   const [paffing, setPaffing] = useState(null);
   const [pafing, setPafing] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const actionFor = c => c.status === 'With HR'
       ? (c.investigation ? { label: 'Issue notice', to: 'Awaiting Response' } : { label: 'Investigate', to: 'investigate' })
     : c.status === 'Awaiting Response' ? { label: 'Record response', to: 'Awaiting Decision' }
@@ -649,9 +650,10 @@ function HRQueue({ store }) {
                         <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
                         <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
                       </>}
-                      {c.status !== 'With HR' &&
+                      {c.status !== 'With HR' && c.status !== 'Under Appeal' &&
                         <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
-                      {['Awaiting Response','Awaiting Decision','Closed'].includes(c.status) &&
+                      {c.status === 'Under Appeal' && <><span className="sub">With CEO — under appeal</span><button className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</button></>}
+                      {['Awaiting Response','Awaiting Decision','Closed','Under Appeal'].includes(c.status) &&
                         <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
                       {c.status === 'Closed' &&
                         <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
@@ -668,6 +670,7 @@ function HRQueue({ store }) {
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
       {investigating && <InvestigationModal store={store} c={investigating} onClose={() => setInvestigating(null)} />}
       {juring && <JuryModal store={store} c={juring} onClose={() => setJuring(null)} />}
+      {viewing && <CaseHistoryModal store={store} c={viewing} onClose={() => setViewing(null)} />}
       {forwarding && <ForwardModal store={store} c={forwarding.c} to={forwarding.to} onClose={() => setForwarding(null)} />}
       {lettering && <LetterModal store={store} c={lettering} onClose={() => setLettering(null)} />}
       {paffing && <PAFModal store={store} c={paffing} onClose={() => setPaffing(null)} />}
@@ -1070,6 +1073,7 @@ function HRAll({ store }) {
   const [q, setQ] = useState(''); const [sf, setSf] = useState('');
   const [lettering, setLettering] = useState(null);
   const [paffing, setPaffing] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const rows = cases.filter(c => {
     const e = empById(c.empId, emps), o = offByN(c.off, offs);
     if (!e || !o) return false;
@@ -1103,9 +1107,9 @@ function HRAll({ store }) {
                   <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
                   <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
                   <td className="row-actions">
+                    <button className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</button>
                     {canLetter && <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
                     {c.status === 'Closed' && <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
-                    {!canLetter && c.status !== 'Closed' && <span className="sub">—</span>}
                   </td>
                 </tr>
               );
@@ -1115,6 +1119,7 @@ function HRAll({ store }) {
       </Card>
       {lettering && <LetterModal store={store} c={lettering} onClose={() => setLettering(null)} />}
       {paffing && <PAFModal store={store} c={paffing} onClose={() => setPaffing(null)} />}
+      {viewing && <CaseHistoryModal store={store} c={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -1409,6 +1414,7 @@ function CEOAppeals({ store }) {
   const { cases, emps, offs } = store;
   const appeals = cases.filter(c => c.status === 'Under Appeal');
   const [acting, setActing] = useState(null);
+  const [history, setHistory] = useState(null);
   return (
     <div className="page">
       <PageHead title="Appeals — Final Decision" sub="The CEO (or independent tribunal) is the final arbiter" />
@@ -1422,12 +1428,14 @@ function CEOAppeals({ store }) {
               {c.appeal && <div className="notice-quote">Grounds: “{c.appeal}”</div>}
             </div>
             <div className="notice-actions">
+              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View</button>
               <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'CEO ruling', to: 'Closed' } })}>Rule on appeal</button>
             </div>
           </Card>
         );
       }) : <Empty>No appeals awaiting a ruling.</Empty>}
       {acting && <ActionModal store={store} c={acting.c} action={acting.action} onClose={() => setActing(null)} />}
+      {history && <CaseHistoryModal store={store} c={history} onClose={() => setHistory(null)} />}
     </div>
   );
 }

@@ -252,6 +252,35 @@ export const SEED_CASES=[
   decision:'R', outcome:'Written warning issued',
   appeal:'The log does not separate break periods from working hours, and my output was never below target.'},
 
+ /* Under Appeal — dismissal being appealed */
+ {id:'DC-1064',empId:446,off:8,occ:2,rec:'S10',status:'Under Appeal',raised:'2026-05-30',
+  desc:'Second instance of working in the server room without required PPE, this time causing a minor electrostatic incident.',
+  noticeDate:'2026-05-31', appealDate:'2026-06-12', serious:true, seriousAck:true,
+  investigation:{findings:'Employee entered the server room on 29 May without anti-static equipment; a static discharge damaged a network switch. This is the second PPE breach on record.',
+   lmDiscuss:'ICT Manager confirmed PPE was available and the earlier written warning was explained.',
+   staffDiscuss:'Employee stated he was in a hurry to restore a service outage and skipped the wrist strap.',
+   witnesses:[{name:'Berny Etse',note:'Present when the discharge occurred; confirmed no PPE was worn.'},
+              {name:'Roddy Weital',note:'ICT support; logged the damaged switch afterwards.'}],
+   files:[], savedAt:'2026-06-02'},
+  hrRec:'S10', hrNote:'Repeat PPE breach causing equipment damage. HR recommended a 10-day suspension.',
+  response:'I skipped PPE only because a critical service was down and I was trying to restore it quickly.',
+  decision:'S10', outcome:'10-day suspension issued',
+  appeal:'The breach happened during an emergency outage where speed was critical, and I have since completed refresher safety training.'},
+
+ /* Under Appeal — written warning being appealed */
+ {id:'DC-1065',empId:341,off:16,occ:1,rec:'R',status:'Under Appeal',raised:'2026-06-08',
+  desc:'Personal use of the company vehicle for a non-work trip over a weekend without authorisation.',
+  noticeDate:'2026-06-09', appealDate:'2026-06-18',
+  investigation:{findings:'GPS log shows the terminal vehicle travelled 84 km to a residential address and back on Saturday 6 June, outside any logged job.',
+   lmDiscuss:'Terminal Manager confirmed no weekend duty was assigned.',
+   staffDiscuss:'Employee stated he believed informal weekend use was tolerated for on-call staff.',
+   witnesses:[{name:'Wayne Narruhn',note:'Confirmed no weekend job was assigned that day.'}],
+   files:[], savedAt:'2026-06-10'},
+  hrRec:'R', hrNote:'Unauthorised personal use of a company vehicle. HR recommended a written warning.',
+  response:'I understood that on-call staff could use the vehicle at weekends; this was never clarified to me.',
+  decision:'R', outcome:'Written warning issued',
+  appeal:'On-call vehicle use was never put in writing, and other on-call staff have used vehicles at weekends without action.'},
+
  /* With SMT — waiting on an SMT recommendation */
  {id:'DC-1056',empId:628,off:21,occ:2,rec:'S3',status:'With SMT',raised:'2026-06-17',
   desc:'Refused a direct instruction to complete a safety check and used abusive language toward the shift supervisor in front of other staff.',
@@ -462,6 +491,7 @@ export const PANEL_GUIDE = {
     points: [
       'Cases needing HR action, in order: review & issue the official notice → record the employee response → record the decision.',
       'Issuing the notice starts the 5 working-day response window. The final decision must stay within the offence range.',
+      'When an employee appeals a decision, the case appears here as “Under appeal” (read-only) — the appeal is decided by the CEO in the CEO → Appeals panel.',
       'For serious cases, after investigation you can Forward to CEO (CEO decides) or Forward to SMT (SMT recommends, then CEO decides) — in both, the CEO takes the final decision and closes the case.',
       'The SMT has several members — when forwarding to SMT, pick which member should handle the case from the dropdown.',
       'When you forward a case you must give HR’s recommended action and the reason for it — a recommendation is mandatory and travels with the case to the SMT and the CEO.',

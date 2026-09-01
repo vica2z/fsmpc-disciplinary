@@ -192,6 +192,24 @@ export function useStore() {
     log('lm', newCaseId, 'Escalated counselling ' + counsId + ' to a formal case');
   }, [couns, nextCaseId, log]);
 
+  const escalateCounsellingMulti = useCallback((counsId, offences, date) => {
+    let newCaseId;
+    const cn = couns.find(c => c.id === counsId); if (!cn) return;
+    setCases(prev => {
+      newCaseId = nextCaseId(prev);
+      const list = offences.map(o => ({ off: +o.off, occ: occurrenceFor(cn.empId, +o.off, prev), rec: o.rec }));
+      const first = list[0] || {};
+      return [{
+        id: newCaseId, empId: cn.empId, off: first.off, occ: first.occ, rec: first.rec, offences: list,
+        status: 'With HR', raised: date || '2026-06-21',
+        desc: 'Escalated from counselling ' + counsId + '. ' + (cn.topic || '') + (cn.discussed ? ' — ' + cn.discussed : ''),
+        fromCounselling: counsId,
+      }, ...prev];
+    });
+    setCouns(prev => prev.map(c => c.id === counsId ? { ...c, outcome: 'Escalated', escalatedTo: newCaseId } : c));
+    log('lm', newCaseId, 'Escalated counselling ' + counsId + ' to a formal case with ' + offences.length + ' offence(s)');
+  }, [couns, nextCaseId, log]);
+
   const flagSerious = useCallback((id, on) => {
     updateCase(id, { serious: on });
     if (on) log('lm', id, 'Flagged as a SERIOUS offence — HR notified immediately (investigation ongoing)');
@@ -224,7 +242,7 @@ export function useStore() {
     submitCase, submitCaseMulti, updateCase, deleteCase,
     issueNotice, recordResponse, recordDecision, lodgeAppeal, ceoRuling, submitToHR, saveInvestigation, saveJury, saveProperty,
     forwardToCEO, forwardToSMT, smtRecommend, ceoDecideReferral, reinstateEmployee,
-    addCounselling, updateCounselling, deleteCounselling, escalateCounselling,
+    addCounselling, updateCounselling, deleteCounselling, escalateCounselling, escalateCounsellingMulti,
     flagSerious, acknowledgeSerious,
     addEmp, updateEmp, deleteEmp,
     addOff, updateOff, deleteOff,

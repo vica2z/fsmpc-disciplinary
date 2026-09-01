@@ -383,21 +383,28 @@ function CounsellingModal({ store, rec, onClose }) {
 
 function EscalateModal({ store, cn, onClose }) {
   const { offs, emps } = store;
-  const [offN, setOffN] = useState('');
-  const [rec, setRec] = useState('');
+  const [rows, setRows] = useState([{ off: '', rec: '' }]);
   const [date, setDate] = useState('2026-06-21');
   const e = empById(cn.empId, emps);
-  const penalty = useMemo(() => {
-    if (!offN) return null;
-    const o = offByN(+offN, offs); if (!o) return null;
-    const occ = occurrenceFor(cn.empId, +offN, store.cases);
+
+  function rowInfo(off, offset) {
+    if (!off) return null;
+    const o = offByN(+off, offs); if (!o) return null;
+    const occ = occurrenceFor(cn.empId, +off, store.cases) + offset;
     const pair = rangeForOcc(o, occ);
     return { o, occ, pair, opts: optionsInRange(pair) };
-  }, [offN, offs, cn, store.cases]);
+  }
+  function setRow(i, patch) { setRows(rs => rs.map((r, idx) => idx === i ? { ...r, ...patch } : r)); }
+  function addRow() { setRows(rs => [...rs, { off: '', rec: '' }]); }
+  function removeRow(i) { setRows(rs => rs.length > 1 ? rs.filter((_, idx) => idx !== i) : rs); }
+
   function go() {
-    if (!offN) { alert('Select the offence to charge.'); return; }
-    if (!rec) { alert('Select a recommended action within the range.'); return; }
-    store.escalateCounselling(cn.id, +offN, rec, date);
+    const chosen = rows.filter(r => r.off);
+    if (!chosen.length) { alert('Select at least one offence.'); return; }
+    const seen = new Set();
+    for (const r of chosen) { if (seen.has(r.off)) { alert('The same offence is selected more than once.'); return; } seen.add(r.off); }
+    for (const r of chosen) if (!r.rec) { alert('Select a recommended action for every offence.'); return; }
+    store.escalateCounsellingMulti(cn.id, chosen, date);
     onClose();
   }
   return (
@@ -408,33 +415,38 @@ function EscalateModal({ store, cn, onClose }) {
         <div className="penalty-title">{e?.name} — {cn.topic}</div>
         {cn.discussed && <div className="notice-quote" style={{ marginTop: 6 }}>{cn.discussed}</div>}
       </div>
-      <Field label="Offence">
-        <select className="input" value={offN} onChange={e => { setOffN(e.target.value); setRec(''); }}>
-          <option value="">— Select offence —</option>
-          {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
-        </select>
-      </Field>
-      {penalty && (
-        <div className="penalty-box">
-          <div className="penalty-title">{occLabel(penalty.occ)} occurrence — range:</div>
-          <div className="penalty-range"><span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(penalty.pair) }} /></div>
-          {penalty.o.note && <div className="penalty-note">⚠ {penalty.o.note}</div>}
-        </div>
-      )}
-      <div className="form-grid">
-        <Field label="Recommended action">
-          <select className="input" value={rec} onChange={e => setRec(e.target.value)} disabled={!penalty}>
-            <option value="">— Select action —</option>
-            {penalty && penalty.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
-          </select>
-        </Field>
-        <Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field>
+      <div className="offences-head">
+        <span>Offences <span className="sub">(one incident may involve more than one)</span></span>
+        <TipBtn tip="Add another offence to the escalated case. Each offence keeps its own occurrence, range and recommendation." className="btn btn-sm btn-ghost" onClick={addRow}>+ Add offence</TipBtn>
       </div>
+      {rows.map((r, i) => {
+        const info = rowInfo(r.off, rows.slice(0, i).filter(x => x.off && x.off === r.off).length);
+        return (
+          <div key={i} className="off-row">
+            <div className="off-row-head"><b>Offence {i + 1}</b>{rows.length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => removeRow(i)}>Remove</button>}</div>
+            <div className="form-grid">
+              <Field label="Offence">
+                <select className="input" value={r.off} onChange={e => setRow(i, { off: e.target.value, rec: '' })}>
+                  <option value="">— Select offence —</option>
+                  {offs.map(o => <option key={o.n} value={o.n}>{o.n}. {o.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Recommended action">
+                <select className="input" value={r.rec} onChange={e => setRow(i, { rec: e.target.value })} disabled={!info}>
+                  <option value="">— Select action —</option>
+                  {info && info.opts.map(c => <option key={c} value={c}>{c} — {penFull(c)}</option>)}
+                </select>
+              </Field>
+            </div>
+            {info && <div className="penalty-box"><div className="penalty-title">{occLabel(info.occ)} occurrence — <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(info.pair) }} /></div>{info.o.note && <div className="penalty-note">⚠ {info.o.note}</div>}</div>}
+          </div>
+        );
+      })}
+      <div className="form-grid"><Field label="Date raised"><input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></Field></div>
       <p className="hint">This creates a formal case (status: With HR) linked to {cn.id}, and marks the counselling as Escalated.</p>
     </Modal>
   );
 }
-
 /* Shared read-only counselling log (HR / CEO). Optionally scoped by a filter fn. */
 function CounsellingTable({ store, filterFn }) {
   const { couns, emps } = store;
@@ -1000,8 +1012,10 @@ function ForwardModal({ store, c, to, onClose }) {
     <Modal title={`Forward ${c.id} to ${to === 'SMT' ? 'the SMT' : 'the CEO'}`} onClose={onClose}
       foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Forward to {to}</button></>}>
       <div className="penalty-box">
-        <div className="penalty-title">{e?.name} — {o?.name}</div>
-        <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
+        <div className="penalty-title">{e?.name}</div>
+        {caseOffences(c).map((x, i) => { const oo = offByN(x.off, offs); const pr = oo ? rangeForOcc(oo, x.occ) : null; return (
+          <div key={i} className="sub" style={{ margin: '2px 0' }}>{caseOffences(c).length > 1 ? `${i + 1}. ` : ''}{oo?.name} — {occLabel(x.occ)} occ, range <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pr) }} /></div>
+        ); })}
         <div className="sub" style={{ marginTop: 6 }}>{to === 'SMT'
           ? 'The Senior Management Team will review this case and recommend an action to the CEO. It then goes to the CEO with their recommendation.'
           : 'This case goes directly to the CEO for a final decision, skipping the notice/response stage.'}</div>
@@ -1014,7 +1028,7 @@ function ForwardModal({ store, c, to, onClose }) {
           </select>
         </Field>
       )}
-      <Field label="HR recommended action (required)">
+      <Field label="HR overall recommendation to the CEO (required)"><span className="sub" style={{display:'block',marginBottom:4}}>One recommendation covering the case as a whole.</span>
         <select className="input" value={rec} onChange={ev => setRec(ev.target.value)}>
           <option value="">— Select recommended action —</option>
           {opts.map(x => <option key={x} value={x}>{x} — {penFull(x)}</option>)}

@@ -196,7 +196,7 @@ function LMQueue({ store, setView }) {
                     <td><span className={'chip ' + penClass(c.rec)}>{c.rec}</span> {penFull(c.rec)}</td>
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.serious && <div style={{ marginTop: 4 }}><span className="pill st-serious">⚠ Serious</span></div>}</td>
                     <td className="row-actions">
-                      {c.status === 'Draft' && <button className="btn btn-sm btn-navy" onClick={() => store.submitToHR(c.id)}>Submit to HR</button>}
+                      {c.status === 'Draft' && <TipBtn tip="Send this draft case to HR for review." className="btn btn-sm btn-navy" onClick={() => store.submitToHR(c.id)}>Submit to HR</TipBtn>}
                       {c.status === 'Draft' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete draft ' + c.id + '?')) store.deleteCase(c.id); }}>Delete</button>}
                       {!c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, true)}>Flag serious</button>}
                       {c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, false)}>Unflag</button>}
@@ -230,7 +230,7 @@ function LMQueue({ store, setView }) {
                         : <span className="pill st-draft">Not started</span>}
                     </td>
                     <td className="row-actions">
-                      <button className="btn btn-sm btn-navy" onClick={() => setPropCase(c)}>Retrieve property</button>
+                      <TipBtn tip="Open the checklist to record return of company property on dismissal." className="btn btn-sm btn-navy" onClick={() => setPropCase(c)}>Retrieve property</TipBtn>
                     </td>
                   </tr>
                 );
@@ -322,7 +322,7 @@ function LMCounselling({ store }) {
                     <td>{c.date}</td>
                     <td><span className={'pill ' + counselOutcomeClass(c.outcome)}>{c.outcome}</span>{c.escalatedTo && <div className="sub">→ {c.escalatedTo}</div>}</td>
                     <td className="row-actions">
-                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-navy" onClick={() => setEscalating(c)}>Escalate</button>}
+                      {c.outcome !== 'Escalated' && <TipBtn tip="Turn this counselling record into a formal case, carrying the notes forward." className="btn btn-sm btn-navy" onClick={() => setEscalating(c)}>Escalate</TipBtn>}
                       {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-ghost" onClick={() => setEditing(c)}>Edit</button>}
                       {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete counselling ' + c.id + '?')) store.deleteCounselling(c.id); }}>Delete</button>}
                       {c.outcome === 'Escalated' && <span className="sub">Now a formal case</span>}
@@ -579,7 +579,7 @@ function LMRaise({ store, setView }) {
         </label>
         <div className="form-actions">
           <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
-          <button className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</button>
+          <TipBtn tip="Send this draft case to HR for review." className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</TipBtn>
         </div>
       </Card>
     </div>
@@ -617,7 +617,7 @@ function HRQueue({ store }) {
               return (
                 <div key={c.id} className="serious-alert-row">
                   <div><b>{c.id}</b> · {e?.name} — {o?.name}</div>
-                  <button className="btn btn-sm btn-navy" onClick={() => store.acknowledgeSerious(c.id)}>Acknowledge</button>
+                  <TipBtn tip="Confirm HR has seen the serious-offence alert and is acting on it." className="btn btn-sm btn-navy" onClick={() => store.acknowledgeSerious(c.id)}>Acknowledge</TipBtn>
                 </div>
               );
             })}
@@ -643,20 +643,20 @@ function HRQueue({ store }) {
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span></td>
                     <td className="row-actions">
                       {c.status === 'With HR' && !c.investigation &&
-                        <button className="btn btn-sm btn-navy" onClick={() => setInvestigating(c)}>Investigate</button>}
+                        <TipBtn tip="Open the investigation: record findings, discussions, witnesses and evidence before any notice is issued." className="btn btn-sm btn-navy" onClick={() => setInvestigating(c)}>Investigate</TipBtn>}
                       {c.status === 'With HR' && c.investigation && <>
-                        <button className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</button>
+                        <TipBtn tip="Re-open the saved investigation to review or edit findings, witnesses and evidence." className="btn btn-sm btn-ghost" onClick={() => setInvestigating(c)}>Investigation</TipBtn>
                         <button className="btn btn-sm btn-ghost" onClick={() => setJuring(c)}>{c.jury?.active ? 'Jury ✓' : 'Jury of Peers'}</button>
-                        <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</button>
-                        <button className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</button>
+                        <TipBtn tip="Send the case straight to the CEO for a final decision (HR recommendation required)." className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'CEO' })}>Forward to CEO</TipBtn>
+                        <TipBtn tip="Send the case to a chosen SMT member for a recommendation to the CEO (HR recommendation required)." className="btn btn-sm btn-navy" onClick={() => setForwarding({ c, to: 'SMT' })}>Forward to SMT</TipBtn>
                       </>}
                       {c.status !== 'With HR' && c.status !== 'Under Appeal' &&
                         <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: na })}>{na.label}</button>}
-                      {c.status === 'Under Appeal' && <><span className="sub">With CEO — under appeal</span><button className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</button></>}
+                      {c.status === 'Under Appeal' && <><span className="sub">With CEO — under appeal</span><TipBtn tip="Open the full case history: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</TipBtn></>}
                       {['Awaiting Response','Awaiting Decision','Closed','Under Appeal'].includes(c.status) &&
-                        <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
+                        <TipBtn tip="Generate a formatted disciplinary notice, auto-filled from the case, to print or save as PDF." className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</TipBtn>}
                       {c.status === 'Closed' &&
-                        <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
+                        <TipBtn tip="Generate the Personnel Action Form (PAF) for payroll on a closed case." className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</TipBtn>}
                       {c.status === 'Closed' &&
                         <button className="btn btn-sm btn-ghost" onClick={() => setPafing(c)}>PAF</button>}
                     </td>
@@ -1107,9 +1107,9 @@ function HRAll({ store }) {
                   <td><span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span></td>
                   <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.outcome && <div className="sub">{c.outcome}</div>}</td>
                   <td className="row-actions">
-                    <button className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</button>
-                    {canLetter && <button className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</button>}
-                    {c.status === 'Closed' && <button className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</button>}
+                    <TipBtn tip="Open the full case history: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setViewing(c)}>View</TipBtn>
+                    {canLetter && <TipBtn tip="Generate a formatted disciplinary notice, auto-filled from the case, to print or save as PDF." className="btn btn-sm btn-ghost" onClick={() => setLettering(c)}>Letter</TipBtn>}
+                    {c.status === 'Closed' && <TipBtn tip="Generate the Personnel Action Form (PAF) for payroll on a closed case." className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</TipBtn>}
                   </td>
                 </tr>
               );
@@ -1308,8 +1308,8 @@ function CEOReferrals({ store }) {
             )}
             <div className="notice-actions">
               <span className="pill st-ceo">With CEO</span>
-              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</button>
-              <button className="btn btn-sm btn-navy" onClick={() => setDeciding(c)}>Make final decision</button>
+              <TipBtn tip="Open the full case record: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</TipBtn>
+              <TipBtn tip="Record the CEO\u2019s final action, within the offence range. Closes the case." className="btn btn-sm btn-navy" onClick={() => setDeciding(c)}>Make final decision</TipBtn>
             </div>
           </Card>
         );
@@ -1374,7 +1374,7 @@ function CEOReinstate({ store }) {
               {c.reinstated
                 ? <span className="pill st-closed">Re-instated</span>
                 : <><span className="pill pen-D" style={{padding:'4px 11px'}}>Dismissed</span>
-                   <button className="btn btn-sm btn-navy" onClick={() => setActing(c)}>Re-establish to payroll</button></>}
+                   <TipBtn tip="Reverse a dismissal and restore the employee to payroll, with a reason and effective date." className="btn btn-sm btn-navy" onClick={() => setActing(c)}>Re-establish to payroll</TipBtn></>}
             </div>
           </Card>
         );
@@ -1428,7 +1428,7 @@ function CEOAppeals({ store }) {
               {c.appeal && <div className="notice-quote">Grounds: “{c.appeal}”</div>}
             </div>
             <div className="notice-actions">
-              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View</button>
+              <TipBtn tip="Open the full case history: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View</TipBtn>
               <button className="btn btn-sm btn-navy" onClick={() => setActing({ c, action: { label: 'CEO ruling', to: 'Closed' } })}>Rule on appeal</button>
             </div>
           </Card>
@@ -1619,8 +1619,8 @@ function SMTQueue({ store }) {
             </div>
             <div className="notice-actions">
               <span className="pill st-smt">With SMT</span>
-              <button className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</button>
-              <button className="btn btn-sm btn-navy" onClick={() => setReccing(c)}>Recommend to CEO</button>
+              <TipBtn tip="Open the full case record: counselling, investigation, witnesses, evidence, recommendations and audit trail." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View full case history</TipBtn>
+              <TipBtn tip="Record the SMT\u2019s recommended action and rationale (required) and send to the CEO." className="btn btn-sm btn-navy" onClick={() => setReccing(c)}>Recommend to CEO</TipBtn>
             </div>
           </Card>
         );
@@ -1957,6 +1957,14 @@ function InfoTip({ text }) {
     <span className="infotip" tabIndex={0}>
       <span className="infotip-i">i</span>
       <span className="infotip-bubble">{text}</span>
+    </span>
+  );
+}
+function TipBtn({ tip, className, onClick, children }) {
+  return (
+    <span className="tipbtn">
+      <button className={className} onClick={onClick}>{children}</button>
+      <InfoTip text={tip} />
     </span>
   );
 }

@@ -197,9 +197,9 @@ function LMQueue({ store, setView }) {
                     <td><span className={'pill ' + statusClass(c.status)}>{c.status}</span>{c.serious && <div style={{ marginTop: 4 }}><span className="pill st-serious">⚠ Serious</span></div>}</td>
                     <td className="row-actions">
                       {c.status === 'Draft' && <TipBtn tip="Send this draft case to HR for review." className="btn btn-sm btn-navy" onClick={() => store.submitToHR(c.id)}>Submit to HR</TipBtn>}
-                      {c.status === 'Draft' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete draft ' + c.id + '?')) store.deleteCase(c.id); }}>Delete</button>}
-                      {!c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, true)}>Flag serious</button>}
-                      {c.serious && <button className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, false)}>Unflag</button>}
+                      {c.status === 'Draft' && <TipBtn tip="Permanently delete this draft case. This cannot be undone." className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete draft ' + c.id + '?')) store.deleteCase(c.id); }}>Delete</TipBtn>}
+                      {!c.serious && <TipBtn tip="Mark this case as a serious offence — HR is alerted immediately while the investigation continues." className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, true)}>Flag serious</TipBtn>}
+                      {c.serious && <TipBtn tip="Remove the serious-offence flag from this case." className="btn btn-sm btn-ghost" onClick={() => store.flagSerious(c.id, false)}>Unflag</TipBtn>}
                     </td>
                   </tr>
                 );
@@ -265,7 +265,7 @@ function PropertyModal({ store, c, onClose }) {
   }
   return (
     <Modal title={`Property retrieval — ${e?.name}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save checklist</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Save the company-property retrieval checklist." className="btn btn-navy" onClick={save}>Save checklist</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {e?.title}</div>
         <div className="sub">On dismissal, retrieve all company property from the employee. Tick each item as it is returned; add a note for anything outstanding.</div>
@@ -323,8 +323,8 @@ function LMCounselling({ store }) {
                     <td><span className={'pill ' + counselOutcomeClass(c.outcome)}>{c.outcome}</span>{c.escalatedTo && <div className="sub">→ {c.escalatedTo}</div>}</td>
                     <td className="row-actions">
                       {c.outcome !== 'Escalated' && <TipBtn tip="Turn this counselling record into a formal case, carrying the notes forward." className="btn btn-sm btn-navy" onClick={() => setEscalating(c)}>Escalate</TipBtn>}
-                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-ghost" onClick={() => setEditing(c)}>Edit</button>}
-                      {c.outcome !== 'Escalated' && <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete counselling ' + c.id + '?')) store.deleteCounselling(c.id); }}>Delete</button>}
+                      {c.outcome !== 'Escalated' && <TipBtn tip="Edit this record." className="btn btn-sm btn-ghost" onClick={() => setEditing(c)}>Edit</TipBtn>}
+                      {c.outcome !== 'Escalated' && <TipBtn tip="Permanently delete this draft case. This cannot be undone." className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete counselling ' + c.id + '?')) store.deleteCounselling(c.id); }}>Delete</TipBtn>}
                       {c.outcome === 'Escalated' && <span className="sub">Now a formal case</span>}
                     </td>
                   </tr>
@@ -409,7 +409,7 @@ function EscalateModal({ store, cn, onClose }) {
   }
   return (
     <Modal title={`Escalate ${cn.id} to a formal case`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Escalate to case</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Create a formal case from this counselling, carrying the notes and offences forward." className="btn btn-navy" onClick={go}>Escalate to case</TipBtn></>}>
       <div className="penalty-box">
         <div className="sub">Carrying forward from counselling</div>
         <div className="penalty-title">{e?.name} — {cn.topic}</div>
@@ -648,7 +648,7 @@ function LMRaise({ store, setView }) {
           <span><b>Serious offence</b> — report to HR immediately. HR is alerted now, while the investigation continues.</span>
         </label>
         <div className="form-actions">
-          <button className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</button>
+          <TipBtn tip="Save this case as a draft without sending it to HR yet." className="btn btn-ghost" onClick={() => submit(true)}>Save as draft</TipBtn>
           <TipBtn tip="Send this case to HR for review." className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</TipBtn>
         </div>
       </Card>
@@ -728,7 +728,7 @@ function HRQueue({ store }) {
                       {c.status === 'Closed' &&
                         <TipBtn tip="Generate the Personnel Action Form (PAF) for payroll on a closed case." className="btn btn-sm btn-ghost" onClick={() => setPaffing(c)}>Personnel Form</TipBtn>}
                       {c.status === 'Closed' &&
-                        <button className="btn btn-sm btn-ghost" onClick={() => setPafing(c)}>PAF</button>}
+                        <TipBtn tip="Generate the Personnel Action Form for payroll on this closed case." className="btn btn-sm btn-ghost" onClick={() => setPafing(c)}>PAF</TipBtn>}
                     </td>
                   </tr>
                 );
@@ -930,7 +930,7 @@ function JuryModal({ store, c, onClose }) {
 
   return (
     <Modal title={`Jury of Peers — ${c.id}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Save jury</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Save the peer panel, finding and recommendation onto the case." className="btn btn-navy" onClick={save}>Save jury</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="sub">For a serious case, HR may activate a Jury of Peers — an impartial panel of fellow employees who review the case and give an independent finding and recommendation to inform the decision.</div>
@@ -1081,7 +1081,7 @@ function InvestigationModal({ store, c, onClose }) {
   const isImg = t => t && t.startsWith('image/');
   return (
     <Modal title={`Investigation — ${c.id}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={() => save(false)}>Save investigation</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Save the investigation findings, witnesses and evidence to the case." className="btn btn-navy" onClick={() => save(false)}>Save investigation</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="sub">Investigate before issuing the notice: establish the facts, discuss with the line manager and the employee, and record any witnesses and evidence.</div>
@@ -1419,7 +1419,7 @@ function CEODecisionModal({ store, c, onClose }) {
   }
   return (
     <Modal title={`CEO decision — ${c.id}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Record final decision</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Record the CEO\u2019s final action within the offence range. Closes the case." className="btn btn-navy" onClick={go}>Record final decision</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
@@ -1481,7 +1481,7 @@ function ReinstateModal({ store, c, onClose }) {
   }
   return (
     <Modal title={`Re-establish ${e?.name} to payroll`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Confirm re-instatement</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Reverse the dismissal and restore the employee to payroll on the effective date." className="btn btn-navy" onClick={go}>Confirm re-instatement</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {e?.title}</div>
         <div className="sub">This reverses the dismissal from case {c.id} ({o?.name}) and restores the employee into the payroll system. This action is recorded in the audit log.</div>
@@ -1731,7 +1731,7 @@ function SMTRecommendModal({ store, c, onClose }) {
   }
   return (
     <Modal title={`SMT recommendation — ${c.id}`} onClose={onClose}
-      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={go}>Send recommendation to CEO</button></>}>
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><TipBtn tip="Send the SMT\u2019s recommendation and rationale to the CEO." className="btn btn-navy" onClick={go}>Send recommendation to CEO</TipBtn></>}>
       <div className="penalty-box">
         <div className="penalty-title">{e?.name} — {o?.name}</div>
         <div className="penalty-range"><span className="sub">{occLabel(c.occ)} occurrence — range:</span> <span className="pmatrix" dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} /></div>
@@ -1885,7 +1885,7 @@ function Charges({ store, role }) {
                 <td>{o.name}{o.note && <div className="penalty-note">⚠ {o.note}</div>}</td>
                 {[0, 1, 2].map(i => { const pair = o.p[i] || o.p[o.p.length - 1]; return <td key={i} dangerouslySetInnerHTML={{ __html: rangeChips(pair) }} />; })}
                 {editable && <td className="row-actions">
-                  <button className="btn btn-sm btn-ghost" onClick={() => setEditing(o)}>Edit</button>
+                  <TipBtn tip="Edit this record." className="btn btn-sm btn-ghost" onClick={() => setEditing(o)}>Edit</TipBtn>
                   <button className="btn btn-sm btn-danger" onClick={() => { if (confirm(`Delete offence #${o.n}?`)) store.deleteOff(o.n); }}>Delete</button>
                 </td>}
               </tr>
@@ -1946,7 +1946,7 @@ function Employees({ store }) {
                 <tr key={e.id}>
                   <td className="mono">{e.id}</td><td><b>{e.name}</b></td><td>{e.title}</td><td>{e.dept}</td><td>{e.sup}</td><td>{n}</td>
                   <td className="row-actions">
-                    <button className="btn btn-sm btn-ghost" onClick={() => setEditing(e)}>Edit</button>
+                    <TipBtn tip="Edit this record." className="btn btn-sm btn-ghost" onClick={() => setEditing(e)}>Edit</TipBtn>
                     <button className="btn btn-sm btn-danger" onClick={() => { if (n > 0) { alert(`${e.name} has ${n} case(s) and cannot be deleted.`); return; } if (confirm(`Delete ${e.name}?`)) store.deleteEmp(e.id); }}>Delete</button>
                   </td>
                 </tr>

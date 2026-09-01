@@ -279,3 +279,11 @@ button{font-family:var(--font)}
 .hist-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
 .hist-item:last-child{border-bottom:none}
 .hist-quote{background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;margin:4px 0 8px;line-height:1.55}
+
+/* Info tooltip */
+.infotip{position:relative;display:inline-flex;align-items:center;margin-left:8px;vertical-align:middle;cursor:help}
+.infotip-i{width:17px;height:17px;border-radius:50%;background:var(--navy);color:var(--gold-lt);font-size:11px;font-weight:800;font-style:italic;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif}
+.infotip-bubble{position:absolute;left:50%;top:150%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:12px;font-weight:400;line-height:1.5;padding:9px 12px;border-radius:8px;width:260px;box-shadow:0 8px 24px rgba(13,43,85,.28);opacity:0;visibility:hidden;transition:.15s;z-index:60;text-transform:none;letter-spacing:normal}
+.infotip-bubble::before{content:'';position:absolute;left:50%;top:-5px;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:6px solid var(--navy)}
+.infotip:hover .infotip-bubble,.infotip:focus .infotip-bubble{opacity:1;visibility:visible}
+h1 .infotip-bubble{font-size:12px}

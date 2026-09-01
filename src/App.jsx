@@ -123,7 +123,7 @@ function Setup({ store }) {
   ];
   return (
     <div className="page">
-      <PageHead title="System Setup" sub="One-time configuration of the disciplinary module" />
+      <PageHead title="System Setup" info="One-time configuration of the disciplinary module: charges, employees, roles, timers and audit logging." sub="One-time configuration of the disciplinary module" />
       <GuideBanner view="setup" />
       <div className="stat-grid">
         <Stat n={cases.length} label="Total cases" color="#0891B2" />
@@ -147,7 +147,7 @@ function AuditLog({ store }) {
   const { logs } = store;
   return (
     <div className="page">
-      <PageHead title="Audit Log" sub="Every action taken in the disciplinary system, most recent first" />
+      <PageHead title="Audit Log" info="A permanent record of every action taken in the system — who did what, when, and on which case." sub="Every action taken in the disciplinary system, most recent first" />
       <Card>
         {logs.length ? (
           <table className="table">
@@ -178,7 +178,7 @@ function LMQueue({ store, setView }) {
   const propDone = c => { const it = c.property?.items || []; return it.length ? it.filter(i => i.returned).length : 0; };
   return (
     <div className="page">
-      <PageHead title="My Team — Disciplinary" sub="Cases you have raised or are drafting"
+      <PageHead title="My Team — Disciplinary" info="The cases you have raised or are drafting, and property to retrieve when staff are dismissed." sub="Cases you have raised or are drafting"
         right={<button className="btn btn-navy" onClick={() => setView('lm-raise')}>+ Raise a case</button>} />
       <GuideBanner view="lm-queue" />
       <Card title="Your cases" sub="Drafts and cases now with HR">
@@ -304,7 +304,7 @@ function LMCounselling({ store }) {
   const [escalating, setEscalating] = useState(null);
   return (
     <div className="page">
-      <PageHead title="Counselling" sub="The informal first step — counsel and record before any formal case"
+      <PageHead title="Counselling" info="The informal first step: record a counselling chat before any formal case. Can be escalated later." sub="The informal first step — counsel and record before any formal case"
         right={<button className="btn btn-navy" onClick={() => setAdding(true)}>+ Log counselling</button>} />
       <GuideBanner view="lm-counsel" />
       <Card>
@@ -467,7 +467,7 @@ function CounsellingLog({ store }) {
   const n = o => couns.filter(c => c.outcome === o).length;
   return (
     <div className="page">
-      <PageHead title="Counselling Log" sub="Informal counselling recorded before formal cases — oversight" />
+      <PageHead title="Counselling Log" info="A read-only record of all informal counselling logged by line managers." sub="Informal counselling recorded before formal cases — oversight" />
       <GuideBanner view="counsel-log" />
       <div className="stat-grid">
         <Stat n={couns.length} label="Total logged" color="#134E4A" />
@@ -486,7 +486,7 @@ function ExecCounselling({ store, execId }) {
   const ids = new Set(inPortfolio.map(e => e.id));
   return (
     <div className="page">
-      <PageHead title="Portfolio Counselling" sub={`Informal counselling across ${exec.title} — oversight`} />
+      <PageHead title="Portfolio Counselling" info="Informal counselling records for your portfolio staff. Read-only oversight." sub={`Informal counselling across ${exec.title} — oversight`} />
       <GuideBanner view="exec-counsel" />
       <Card><CounsellingTable store={store} filterFn={c => ids.has(c.empId)} /></Card>
     </div>
@@ -526,7 +526,7 @@ function LMRaise({ store, setView }) {
 
   return (
     <div className="page">
-      <PageHead title="Raise a Disciplinary Case" sub="Counsel first — raise a formal case only if the problem continues" />
+      <PageHead title="Raise a Disciplinary Case" info="Start a formal case. The system checks history, shows the penalty range, and lets you flag serious offences." sub="Counsel first — raise a formal case only if the problem continues" />
       <GuideBanner view="lm-raise" />
       <Card>
         <div className="form-grid">
@@ -604,7 +604,7 @@ function HRQueue({ store }) {
     : { label: 'Record decision', to: 'Closed' };
   return (
     <div className="page">
-      <PageHead title="HR Queue" sub="Cases awaiting HR action, in workflow order" />
+      <PageHead title="HR Queue" info="Cases needing HR action, in order: investigate, issue notice, record response, then decision." sub="Cases awaiting HR action, in workflow order" />
       <GuideBanner view="hr-queue" />
       {(() => {
         const serious = queue.filter(c => c.serious && !c.seriousAck);
@@ -1084,7 +1084,7 @@ function HRAll({ store }) {
   const statuses = [...new Set(cases.map(c => c.status))];
   return (
     <div className="page">
-      <PageHead title="All Cases" sub="Every disciplinary case across the company" />
+      <PageHead title="All Cases" info="Every disciplinary case across the company. Use View to open a case\u2019s full history." sub="Every disciplinary case across the company" />
       <div className="filters">
         <input className="input" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} />
         <select className="input" value={sf} onChange={e => setSf(e.target.value)}>
@@ -1131,7 +1131,7 @@ function StaffNotices({ store }) {
   const [acting, setActing] = useState(null);
   return (
     <div className="page">
-      <PageHead title="My Notices" sub="Disciplinary notices addressed to employees — respond or appeal here" />
+      <PageHead title="My Notices" info="Official notices addressed to you. Respond within 5 working days; appeal within 10." sub="Disciplinary notices addressed to employees — respond or appeal here" />
       <GuideBanner view="staff-notices" />
       {notices.length ? notices.map(c => {
         const e = empById(c.empId, emps), o = offByN(c.off, offs);
@@ -1284,7 +1284,7 @@ function CEOReferrals({ store }) {
   const [history, setHistory] = useState(null);
   return (
     <div className="page">
-      <PageHead title="Referrals — CEO Decision" sub="Cases forwarded by HR, or recommended by the SMT" />
+      <PageHead title="Referrals — CEO Decision" info="Cases forwarded by HR or the SMT. You make the final decision, within the offence range." sub="Cases forwarded by HR, or recommended by the SMT" />
       <GuideBanner view="ceo-referrals" />
       {refs.length ? refs.map(c => {
         const e = empById(c.empId, emps), o = offByN(c.off, offs);
@@ -1359,7 +1359,7 @@ function CEOReinstate({ store }) {
   const [acting, setActing] = useState(null);
   return (
     <div className="page">
-      <PageHead title="Re-instatement" sub="Re-establish a previously terminated employee into the payroll system" />
+      <PageHead title="Re-instatement" info="Re-establish a previously dismissed employee back into payroll, with a reason and date." sub="Re-establish a previously terminated employee into the payroll system" />
       <GuideBanner view="ceo-reinstate" />
       {dismissed.length ? dismissed.map(c => {
         const e = empById(c.empId, emps), o = offByN(c.off, offs);
@@ -1417,7 +1417,7 @@ function CEOAppeals({ store }) {
   const [history, setHistory] = useState(null);
   return (
     <div className="page">
-      <PageHead title="Appeals — Final Decision" sub="The CEO (or independent tribunal) is the final arbiter" />
+      <PageHead title="Appeals — Final Decision" info="Employee appeals of a decision. The CEO ruling is final and closes the case." sub="The CEO (or independent tribunal) is the final arbiter" />
       <GuideBanner view="ceo-appeals" />
       {appeals.length ? appeals.map(c => {
         const e = empById(c.empId, emps), o = offByN(c.off, offs);
@@ -1460,7 +1460,7 @@ function ExecPortfolio({ store, execId }) {
 
   return (
     <div className="page">
-      <PageHead title="My Portfolio" sub={`${exec.name} · ${exec.title}`} />
+      <PageHead title="My Portfolio" info="The staff in your portfolio, grouped by department, with open-case counts." sub={`${exec.name} · ${exec.title}`} />
       <GuideBanner view="exec-portfolio" />
       <div className="stat-grid">
         <Stat n={inPortfolio.length} label="Staff in portfolio" color="#134E4A" />
@@ -1505,7 +1505,7 @@ function ExecAppraisals({ store, execId }) {
 
   return (
     <div className="page">
-      <PageHead title="Portfolio Appraisals" sub={`${quarter} 2026 · appraisal status across ${exec.title}`}
+      <PageHead title="Portfolio Appraisals" info="Appraisal status of your portfolio staff by quarter. Read-only oversight." sub={`${quarter} 2026 · appraisal status across ${exec.title}`}
         right={
           <select className="input" style={{ maxWidth: 140 }} value={quarter} onChange={e => setQuarter(e.target.value)}>
             <option value="Q1">Q1 2026</option><option value="Q2">Q2 2026</option>
@@ -1551,7 +1551,7 @@ function ExecDiscipline({ store, execId }) {
 
   return (
     <div className="page">
-      <PageHead title="Portfolio Discipline" sub={`Disciplinary standing across ${exec.title} — oversight only`} />
+      <PageHead title="Portfolio Discipline" info="Every disciplinary case for your portfolio staff. Read-only oversight." sub={`Disciplinary standing across ${exec.title} — oversight only`} />
       <GuideBanner view="exec-discipline" />
       <div className="stat-grid">
         <Stat n={mine.filter(c => c.status !== 'Closed').length} label="Open" color="#1E40AF" />
@@ -1600,7 +1600,7 @@ function SMTQueue({ store }) {
   const [history, setHistory] = useState(null);
   return (
     <div className="page">
-      <PageHead title="SMT Referrals" sub="Cases forwarded by HR for a recommendation to the CEO" />
+      <PageHead title="SMT Referrals" info="Cases HR forwarded to you for a recommendation to the CEO. A recommendation is mandatory." sub="Cases forwarded by HR for a recommendation to the CEO" />
       <GuideBanner view="smt-queue" />
       {queue.length ? queue.map(c => {
         const e = empById(c.empId, emps), o = offByN(c.off, offs);
@@ -1676,7 +1676,7 @@ function SMTDecided({ store }) {
   const rows = cases.filter(c => c.smtRec);
   return (
     <div className="page">
-      <PageHead title="Recommended" sub="Cases the SMT has recommended on and sent to the CEO" />
+      <PageHead title="Recommended" info="Cases the SMT has recommended on and sent to the CEO, with the CEO\u2019s final decision." sub="Cases the SMT has recommended on and sent to the CEO" />
       <GuideBanner view="smt-decided" />
       <Card>
         {rows.length ? (
@@ -1782,7 +1782,7 @@ function Charges({ store, role }) {
   });
   return (
     <div className="page">
-      <PageHead title="Table of Charges" sub="Recognised offences and penalty ranges by occurrence"
+      <PageHead title="Table of Charges" info="Every recognised offence and its penalty (verbal warning, written warning, suspension, dismissal) by occurrence." sub="Recognised offences and penalty ranges by occurrence"
         right={editable && <button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add offence</button>} />
       <GuideBanner view="charges" />
       <div className="filters">
@@ -1847,7 +1847,7 @@ function Employees({ store }) {
   const rows = emps.filter(e => !q || (e.name + ' ' + e.title + ' ' + e.dept).toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="page">
-      <PageHead title="Employees" sub="Staff directory used by the disciplinary system"
+      <PageHead title="Employees" info="The staff directory used by the disciplinary system. Add, edit or delete employees." sub="Staff directory used by the disciplinary system"
         right={<button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add employee</button>} />
       <GuideBanner view="employees" />
       <div className="filters"><input className="input" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} /></div>
@@ -1907,7 +1907,7 @@ function Report({ store }) {
   ) : <Empty>{empty}</Empty>;
   return (
     <div className="page">
-      <PageHead title="Weekly CEO Report" sub="Summary of disciplinary activity for executive review" />
+      <PageHead title="Weekly CEO Report" info="A summary of all disciplinary activity for executive review." sub="Summary of disciplinary activity for executive review" />
       <GuideBanner view="report" />
       <div className="stat-grid">
         <Stat n={open.length} label="Open" color="#1E40AF" />
@@ -1929,7 +1929,7 @@ function HowItWorks() {
   const role = ROLES[s.role] || { name: s.role, c: '#667085', bg: '#F3F1EC' };
   return (
     <div className="page">
-      <PageHead title="How it works" sub="The disciplinary process, step by step" />
+      <PageHead title="How it works" info="A step-by-step walkthrough of the whole disciplinary process." sub="The disciplinary process, step by step" />
       <div className="steps-nav">
         {STEPS.map((st, i) => (
           <button key={i} className={'step-dot' + (i === step ? ' active' : i < step ? ' done' : '')} onClick={() => setStep(i)}>
@@ -1952,8 +1952,16 @@ function HowItWorks() {
 }
 
 /* ═══════════ shared bits ═══════════ */
-function PageHead({ title, sub, right }) {
-  return <div className="page-head"><div><h1>{title}</h1>{sub && <p className="page-sub">{sub}</p>}</div>{right && <div className="page-head-r">{right}</div>}</div>;
+function InfoTip({ text }) {
+  return (
+    <span className="infotip" tabIndex={0}>
+      <span className="infotip-i">i</span>
+      <span className="infotip-bubble">{text}</span>
+    </span>
+  );
+}
+function PageHead({ title, sub, right, info }) {
+  return <div className="page-head"><div><h1>{title}{info && <InfoTip text={info} />}</h1>{sub && <p className="page-sub">{sub}</p>}</div>{right && <div className="page-head-r">{right}</div>}</div>;
 }
 function Stat({ n, label, color }) { return <div className="stat"><div className="stat-n" style={{ color }}>{n}</div><div className="stat-l">{label}</div></div>; }
 function Card({ title, sub, children }) {

@@ -288,6 +288,10 @@ button{font-family:var(--font)}
 /* panel-title tips: plenty of room, open rightward */
 h1 .infotip-bubble{right:auto;left:0}
 h1 .infotip-bubble::before{right:auto;left:4px}
+.field .infotip-bubble{right:auto;left:0}
+.field .infotip-bubble::before{right:auto;left:4px}
+.inv-title .infotip-bubble{right:auto;left:0}
+.inv-title .infotip-bubble::before{right:auto;left:4px}
 .infotip:hover .infotip-bubble,.infotip:focus .infotip-bubble{opacity:1;visibility:visible}
 h1 .infotip-bubble{font-size:12px}
 

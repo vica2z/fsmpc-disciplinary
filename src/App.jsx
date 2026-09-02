@@ -362,7 +362,9 @@ function CounsellingModal({ store, rec, onClose }) {
       <Field label="Employee">
         <select className="input" value={f.empId} onChange={set('empId')} disabled={!isNew}>
           <option value="">— Select employee —</option>
-          {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
+          {emps.map(e => { const open = store.cases.filter(c => c.empId === e.id && c.status !== 'Closed').length; return (
+            <option key={e.id} value={e.id}>{open ? '🔴 ' : ''}{e.name} — {e.title}{open ? ` (${open} open case${open > 1 ? 's' : ''})` : ''}</option>
+          ); })}
         </select>
       </Field>
       <Field label="Issue / concern"><textarea className="input" rows={2} value={f.topic} onChange={set('topic')} placeholder="What performance or conduct problem occurred…" /></Field>
@@ -574,14 +576,14 @@ function LMRaise({ store, setView }) {
           <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRows([{ off: '', rec: '' }]); }}>
             <option value="">— Select employee —</option>
             {emps.map(e => { const open = cases.filter(c => c.empId === e.id && c.status !== 'Closed').length; return (
-              <option key={e.id} value={e.id}>{open ? '⚠ ' : ''}{e.name} — {e.title}{open ? ` (${open} open case${open > 1 ? 's' : ''})` : ''}</option>
+              <option key={e.id} value={e.id}>{open ? '🔴 ' : ''}{e.name} — {e.title}{open ? ` (${open} open case${open > 1 ? 's' : ''})` : ''}</option>
             ); })}
           </select>
         </Field>
 
         {openCases.length > 0 && (
           <div className="counsel-alert" style={{ borderColor: '#FCA5A5', background: '#FEF2F2' }}>
-            <div className="inv-title" style={{ color: '#991B1B' }}>⚠ This employee already has {openCases.length} open case{openCases.length > 1 ? 's' : ''}</div>
+            <div className="inv-title" style={{ color: '#991B1B' }}>🔴 This employee already has {openCases.length} open case{openCases.length > 1 ? 's' : ''}</div>
             <div className="sub" style={{ marginBottom: 6 }}>You can still raise a new case if this is a separate matter — check it isn’t a duplicate.</div>
             {openCases.map(c => (
               <div key={c.id} className="counsel-alert-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

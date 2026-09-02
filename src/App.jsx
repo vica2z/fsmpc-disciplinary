@@ -513,6 +513,7 @@ function LMRaise({ store, setView }) {
   const [date, setDate] = useState('2026-06-21');
   const [serious, setSerious] = useState(false);
   const [files, setFiles] = useState([]);
+  const [history, setHistory] = useState(null);
 
   function onFiles(ev) {
     const list = Array.from(ev.target.files || []);
@@ -572,16 +573,22 @@ function LMRaise({ store, setView }) {
         <Field label="Employee">
           <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRows([{ off: '', rec: '' }]); }}>
             <option value="">— Select employee —</option>
-            {emps.map(e => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
+            {emps.map(e => { const open = cases.filter(c => c.empId === e.id && c.status !== 'Closed').length; return (
+              <option key={e.id} value={e.id}>{open ? '⚠ ' : ''}{e.name} — {e.title}{open ? ` (${open} open case${open > 1 ? 's' : ''})` : ''}</option>
+            ); })}
           </select>
         </Field>
 
         {openCases.length > 0 && (
           <div className="counsel-alert" style={{ borderColor: '#FCA5A5', background: '#FEF2F2' }}>
             <div className="inv-title" style={{ color: '#991B1B' }}>⚠ This employee already has {openCases.length} open case{openCases.length > 1 ? 's' : ''}</div>
-            <div className="sub" style={{ marginBottom: 6 }}>You can still raise a new case if this is a separate matter — check it isn\u2019t a duplicate.</div>
+            <div className="sub" style={{ marginBottom: 6 }}>You can still raise a new case if this is a separate matter — check it isn’t a duplicate.</div>
             {openCases.map(c => (
-              <div key={c.id} className="counsel-alert-row"><span className="mono">{c.id}</span> · {offByN(c.off, offs)?.name} <span className={'pill ' + statusClass(c.status)} style={{ marginLeft: 6 }}>{c.status}</span></div>
+              <div key={c.id} className="counsel-alert-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="mono">{c.id}</span> · {offByN(c.off, offs)?.name}
+                <span className={'pill ' + statusClass(c.status)}>{c.status}</span>
+                <TipBtn tip="View the full history of this employee’s existing case." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View history</TipBtn>
+              </div>
             ))}
           </div>
         )}
@@ -666,6 +673,7 @@ function LMRaise({ store, setView }) {
           <TipBtn tip="Send this case to HR for review." className="btn btn-navy" onClick={() => submit(false)}>Submit to HR</TipBtn>
         </div>
       </Card>
+      {history && <CaseHistoryModal store={store} c={history} onClose={() => setHistory(null)} />}
     </div>
   );
 }

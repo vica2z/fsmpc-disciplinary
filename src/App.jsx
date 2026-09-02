@@ -359,7 +359,7 @@ function CounsellingModal({ store, rec, onClose }) {
   return (
     <Modal title={isNew ? 'Log counselling' : `Edit ${rec.id}`} onClose={onClose}
       foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>{isNew ? 'Save' : 'Save changes'}</button></>}>
-      <Field label="Employee">
+      <Field label={<>Employee <InfoTip text="A red circle next to an employee’s name means they already have one or more open disciplinary cases." /></>}>
         <select className="input" value={f.empId} onChange={set('empId')} disabled={!isNew}>
           <option value="">— Select employee —</option>
           {emps.map(e => { const open = store.cases.filter(c => c.empId === e.id && c.status !== 'Closed').length; return (
@@ -577,7 +577,7 @@ function LMRaise({ store, setView }) {
       <PageHead title="Raise a Disciplinary Case" info="Start a formal case. Add one or more offences — each is checked for its own occurrence and penalty range." sub="Counsel first — raise a formal case only if the problem continues" />
       <GuideBanner view="lm-raise" />
       <Card>
-        <Field label="Employee">
+        <Field label={<>Employee <InfoTip text="A red circle next to an employee’s name means they already have one or more open disciplinary cases." /></>}>
           <select className="input" value={empId} onChange={e => { setEmpId(e.target.value); setRows([{ off: '', rec: '' }]); }}>
             <option value="">— Select employee —</option>
             {emps.map(e => { const open = cases.filter(c => c.empId === e.id && c.status !== 'Closed').length; return (

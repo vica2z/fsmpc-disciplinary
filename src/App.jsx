@@ -526,6 +526,11 @@ function LMRaise({ store, setView }) {
     return store.couns.filter(c => c.empId === +empId);
   }, [empId, store.couns]);
 
+  const openCases = useMemo(() => {
+    if (!empId) return [];
+    return cases.filter(c => c.empId === +empId && c.status !== 'Closed');
+  }, [empId, cases]);
+
   // per-row penalty info (occurrence + range), counting earlier rows in this case as history
   function rowInfo(off, idxOffsetSameOff) {
     if (!empId || !off) return null;
@@ -571,6 +576,15 @@ function LMRaise({ store, setView }) {
           </select>
         </Field>
 
+        {openCases.length > 0 && (
+          <div className="counsel-alert" style={{ borderColor: '#FCA5A5', background: '#FEF2F2' }}>
+            <div className="inv-title" style={{ color: '#991B1B' }}>⚠ This employee already has {openCases.length} open case{openCases.length > 1 ? 's' : ''}</div>
+            <div className="sub" style={{ marginBottom: 6 }}>You can still raise a new case if this is a separate matter — check it isn\u2019t a duplicate.</div>
+            {openCases.map(c => (
+              <div key={c.id} className="counsel-alert-row"><span className="mono">{c.id}</span> · {offByN(c.off, offs)?.name} <span className={'pill ' + statusClass(c.status)} style={{ marginLeft: 6 }}>{c.status}</span></div>
+            ))}
+          </div>
+        )}
         {priorCounselling.length > 0 && (
           <div className="counsel-alert">
             <div className="inv-title">⚠ Prior counselling on file for {empById(+empId, emps)?.name}</div>

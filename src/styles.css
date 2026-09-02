@@ -307,3 +307,7 @@ h1 .infotip-bubble{font-size:12px}
 .chip-mini{margin-left:2px}
 .hist-off{border:1px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:7px;font-size:13px}
 .hist-off-head{font-weight:700;color:var(--navy);margin-bottom:3px}
+
+/* Pagination */
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+.pager-info{font-size:13px;color:var(--muted);font-weight:600}

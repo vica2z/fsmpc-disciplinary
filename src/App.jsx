@@ -1860,11 +1860,16 @@ function Charges({ store, role }) {
   const editable = role === 'ict' || role === 'hr';
   const [q, setQ] = useState(''); const [cf, setCf] = useState('');
   const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false); const [addingCat, setAddingCat] = useState(false);
+  const [page, setPage] = useState(1);
+  const PER = 10;
   const rows = offs.filter(o => {
     if (q && o.name.toLowerCase().indexOf(q.toLowerCase()) < 0 && ('' + o.n) !== q) return false;
     if (cf && o.cat !== cf) return false;
     return true;
   });
+  const pages = Math.max(1, Math.ceil(rows.length / PER));
+  const cur = Math.min(page, pages);
+  const pageRows = rows.slice((cur - 1) * PER, cur * PER);
   return (
     <div className="page">
       <PageHead title="Table of Charges" info="Every recognised offence and its penalty (verbal warning, written warning, suspension, dismissal) by occurrence." sub="Recognised offences and penalty ranges by occurrence"
@@ -1874,14 +1879,14 @@ function Charges({ store, role }) {
         </>} />
       <GuideBanner view="charges" />
       <div className="filters">
-        <input className="input" placeholder="Search offence or number…" value={q} onChange={e => setQ(e.target.value)} />
-        <select className="input" value={cf} onChange={e => setCf(e.target.value)}><option value="">All categories</option>{store.cats.map(c => <option key={c}>{c}</option>)}</select>
+        <input className="input" placeholder="Search offence or number…" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} />
+        <select className="input" value={cf} onChange={e => { setCf(e.target.value); setPage(1); }}><option value="">All categories</option>{store.cats.map(c => <option key={c}>{c}</option>)}</select>
       </div>
       <Card>
         <table className="table">
           <thead><tr><th>#</th><th>Category</th><th>Offence</th><th>1st</th><th>2nd</th><th>3rd+</th>{editable && <th>Manage</th>}</tr></thead>
           <tbody>
-            {rows.map(o => (
+            {pageRows.map(o => (
               <tr key={o.n}>
                 <td className="mono">{o.n}</td>
                 <td><span dangerouslySetInnerHTML={{ __html: CAT_ICON[o.cat] || '' }} /> {o.cat}</td>
@@ -1896,6 +1901,13 @@ function Charges({ store, role }) {
           </tbody>
         </table>
       </Card>
+      {pages > 1 && (
+        <div className="pager">
+          <button className="btn btn-sm btn-ghost" disabled={cur === 1} onClick={() => setPage(cur - 1)}>← Prev</button>
+          <span className="pager-info">Page {cur} of {pages} · {rows.length} offences</span>
+          <button className="btn btn-sm btn-ghost" disabled={cur === pages} onClick={() => setPage(cur + 1)}>Next →</button>
+        </div>
+      )}
       {(editing || adding) && <OffenceModal store={store} off={editing} onClose={() => { setEditing(null); setAdding(false); }} />}
       {addingCat && <CategoryModal store={store} onClose={() => setAddingCat(false)} />}
     </div>

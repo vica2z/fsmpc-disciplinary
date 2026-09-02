@@ -534,6 +534,11 @@ function LMRaise({ store, setView }) {
     return cases.filter(c => c.empId === +empId && c.status !== 'Closed');
   }, [empId, cases]);
 
+  const pastCases = useMemo(() => {
+    if (!empId) return [];
+    return cases.filter(c => c.empId === +empId && c.status === 'Closed');
+  }, [empId, cases]);
+
   // per-row penalty info (occurrence + range), counting earlier rows in this case as history
   function rowInfo(off, idxOffsetSameOff) {
     if (!empId || !off) return null;
@@ -590,6 +595,21 @@ function LMRaise({ store, setView }) {
                 <span className="mono">{c.id}</span> · {offByN(c.off, offs)?.name}
                 <span className={'pill ' + statusClass(c.status)}>{c.status}</span>
                 <TipBtn tip="View the full history of this employee’s existing case." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View history</TipBtn>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pastCases.length > 0 && (
+          <div className="counsel-alert">
+            <div className="inv-title">🕘 This employee has {pastCases.length} past (closed) case{pastCases.length > 1 ? 's' : ''} on record</div>
+            <div className="sub" style={{ marginBottom: 6 }}>Earlier disciplinary history — useful for judging occurrence and repeat behaviour.</div>
+            {pastCases.map(c => (
+              <div key={c.id} className="counsel-alert-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="mono">{c.id}</span> · {offByN(c.off, offs)?.name}
+                <span className={'chip ' + penClass(c.decision || c.rec)}>{c.decision || c.rec}</span>
+                <span className="sub">{c.outcome}</span>
+                <TipBtn tip="View the full history of this past case." className="btn btn-sm btn-ghost" onClick={() => setHistory(c)}>View history</TipBtn>
               </div>
             ))}
           </div>

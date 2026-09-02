@@ -1859,7 +1859,7 @@ function Charges({ store, role }) {
   const { offs } = store;
   const editable = role === 'ict' || role === 'hr';
   const [q, setQ] = useState(''); const [cf, setCf] = useState('');
-  const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false); const [addingCat, setAddingCat] = useState(false);
   const rows = offs.filter(o => {
     if (q && o.name.toLowerCase().indexOf(q.toLowerCase()) < 0 && ('' + o.n) !== q) return false;
     if (cf && o.cat !== cf) return false;
@@ -1868,11 +1868,14 @@ function Charges({ store, role }) {
   return (
     <div className="page">
       <PageHead title="Table of Charges" info="Every recognised offence and its penalty (verbal warning, written warning, suspension, dismissal) by occurrence." sub="Recognised offences and penalty ranges by occurrence"
-        right={editable && <button className="btn btn-navy" onClick={() => setAdding(true)}>+ Add offence</button>} />
+        right={editable && <>
+          <TipBtn tip="Add a new offence category (e.g. a new group of offences)." className="btn btn-ghost" onClick={() => setAddingCat(true)}>+ Add category</TipBtn>
+          <TipBtn tip="Add a new offence and its penalty ranges." className="btn btn-navy" onClick={() => setAdding(true)}>+ Add offence</TipBtn>
+        </>} />
       <GuideBanner view="charges" />
       <div className="filters">
         <input className="input" placeholder="Search offence or number…" value={q} onChange={e => setQ(e.target.value)} />
-        <select className="input" value={cf} onChange={e => setCf(e.target.value)}><option value="">All categories</option>{CATS.map(c => <option key={c}>{c}</option>)}</select>
+        <select className="input" value={cf} onChange={e => setCf(e.target.value)}><option value="">All categories</option>{store.cats.map(c => <option key={c}>{c}</option>)}</select>
       </div>
       <Card>
         <table className="table">
@@ -1894,13 +1897,29 @@ function Charges({ store, role }) {
         </table>
       </Card>
       {(editing || adding) && <OffenceModal store={store} off={editing} onClose={() => { setEditing(null); setAdding(false); }} />}
+      {addingCat && <CategoryModal store={store} onClose={() => setAddingCat(false)} />}
     </div>
+  );
+}
+function CategoryModal({ store, onClose }) {
+  const [name, setName] = useState('');
+  function save() {
+    if (!name.trim()) { alert('Enter a category name.'); return; }
+    store.addCat(name.trim());
+    onClose();
+  }
+  return (
+    <Modal title="Add offence category" onClose={onClose}
+      foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>Add category</button></>}>
+      <Field label="Category name"><input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Environmental" /></Field>
+      <p className="hint">The new category becomes available when adding or editing an offence, and in the category filter.</p>
+    </Modal>
   );
 }
 function OffenceModal({ store, off, onClose }) {
   const isNew = !off;
   const [name, setName] = useState(off?.name || '');
-  const [cat, setCat] = useState(off?.cat || CATS[0]);
+  const [cat, setCat] = useState(off?.cat || store.cats[0]);
   const [note, setNote] = useState(off?.note || '');
   const toStr = p => (p || []).map(pr => pr[0] === pr[1] ? pr[0] : `${pr[0]}-${pr[1]}`).join(', ');
   const [pText, setPText] = useState(off ? toStr(off.p) : 'A-R, R-S3, S10-D');
@@ -1917,7 +1936,7 @@ function OffenceModal({ store, off, onClose }) {
     <Modal title={isNew ? 'Add offence' : `Edit offence #${off.n}`} onClose={onClose}
       foot={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-navy" onClick={save}>{isNew ? 'Add' : 'Save'}</button></>}>
       <Field label="Offence description"><textarea className="input" rows={2} value={name} onChange={e => setName(e.target.value)} /></Field>
-      <Field label="Category"><select className="input" value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select></Field>
+      <Field label="Category"><select className="input" value={cat} onChange={e => setCat(e.target.value)}>{store.cats.map(c => <option key={c}>{c}</option>)}</select></Field>
       <Field label="Penalty ranges — 1st, 2nd, 3rd"><input className="input" value={pText} onChange={e => setPText(e.target.value)} placeholder="e.g. A-R, R-S3, S10-D" /></Field>
       <p className="hint">Codes: A, R, S3/S10/S20, D. Single code (D) or range (R-S3). One per occurrence.</p>
       <Field label="Special note (optional)"><input className="input" value={note} onChange={e => setNote(e.target.value)} /></Field>
@@ -1928,7 +1947,7 @@ function OffenceModal({ store, off, onClose }) {
 /* ═══════════ EMPLOYEES (ICT) ═══════════ */
 function Employees({ store }) {
   const { emps, cases } = store;
-  const [q, setQ] = useState(''); const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false);
+  const [q, setQ] = useState(''); const [editing, setEditing] = useState(null); const [adding, setAdding] = useState(false); const [addingCat, setAddingCat] = useState(false);
   const rows = emps.filter(e => !q || (e.name + ' ' + e.title + ' ' + e.dept).toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="page">

@@ -614,6 +614,12 @@ function LMRaise({ store, setView }) {
             ))}
           </div>
         )}
+        {empId && priorCounselling.length === 0 && !serious && (
+          <div className="counsel-alert" style={{ borderColor: '#FCD34D', background: '#FFFBEB' }}>
+            <div className="inv-title" style={{ color: '#92400E' }}>💬 No counselling on file — consider counselling first</div>
+            <div className="sub">Counselling is the recommended first step for a minor or first-time issue. For a serious offence, tick “Serious offence” below and raise the case directly.</div>
+          </div>
+        )}
         {priorCounselling.length > 0 && (
           <div className="counsel-alert">
             <div className="inv-title">⚠ Prior counselling on file for {empById(+empId, emps)?.name}</div>
